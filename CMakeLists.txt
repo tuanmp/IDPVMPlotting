@@ -19,28 +19,21 @@ find_package( ROOT COMPONENTS MathCore RIO Core Tree Hist )
 atlas_add_library( IDPhysValPlottingLib src/*.cxx
                    PUBLIC_HEADERS IDPhysValPlotting
                    INCLUDE_DIRS ${ROOT_INCLUDE_DIRS}
-                   LINK_LIBRARIES ${ROOT_LIBRARIES}
-		                  #AthAnalysisBaseCompsLib
+                   LINK_LIBRARIES ${ROOT_LIBRARIES} NtupleAnalysisUtils
                    PRIVATE_LINK_LIBRARIES
-		                  #Add private dependencies here
 )
 
-# if you add components (tools, algorithms) to this package
-# uncomment the next lines
-#atlas_add_component( IDPhysValPlotting src/components/*.cxx
-#                     LINK_LIBRARIES IDPhysValPlottingLib 
-#)
-      
-# if you add an application (exe) to this package
-# declare it like this
-#atlas_add_executable( MyApp src/myApp.cxx
-#                      LINK_LIBRARIES IDPhysValPlottingLib
-#)
-
-# Install python modules, joboptions, and share content
-atlas_install_python_modules( python/*.py )
-atlas_install_joboptions( share/*.py )
-atlas_install_data( data/* )
-# You can access your data from code using path resolver, e.g.
-# PathResolverFindCalibFile("IDPhysValPlotting/file.txt")
-
+# build exes 
+file(GLOB_RECURSE files "util/*.cxx")
+foreach(_exeFile ${files})
+    get_filename_component(_theExec ${_exeFile} NAME_WE)
+    get_filename_component(_theLoc ${_exeFile} DIRECTORY)
+    # we specify a folder for programs we do not want to compile. Useful during r21 transition...
+    if(${_theLoc} MATCHES "DoNotBuild")
+    else()
+    atlas_add_executable( ${_theExec}
+    ${_exeFile}
+    INCLUDE_DIRS ${ROOT_INCLUDE_DIRS}
+    LINK_LIBRARIES ${ROOT_LIBRARIES} IDPhysValPlottingLib )
+    endif()
+endforeach()
