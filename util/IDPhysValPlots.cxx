@@ -14,7 +14,6 @@ struct genericPlotDef{
     PlotFormat format;  // desired format 
 };
 
-// template-specialise this in case we need special treatment for certain plot types (e.g TH2F projection into 1D). 
 // See for example NtupleAnalysisUtils/PlotPostProcessor.h for inspiration :-) 
 template <class Htype> Plot<Htype> generatePlot (const std::string & plot, const genericPlotDef & genericDef){
 
@@ -75,124 +74,171 @@ template <class Htype> std::vector<PlotContent<Htype>> bookThem(std::vector<std:
 int main (int argc, char** argv){
 
     // input files to use - feel free to make this dynamic using e.g a config file or argv/argc
-    const std::string sampleLoc = "/home/goblirsc/Datasets/Tracking/HIST/"; 
-    const std::string ref = sampleLoc+"356124_LB245_10feb20_HIST";
-    const std::string test_buggy = sampleLoc+"356124_LB245_IDcutVtx_10feb20_HIST";
-    const std::string test_n207 = sampleLoc+"356124_LB245_IDcutVtx_n0207_12feb20_HIST";
-    const std::string test_n210 = sampleLoc+"356124_LB245_IDcutVtx_n0210_12feb20_HIST";
+    const std::string sampleLoc = "/home/goblirsc/Code/Tracking/IDPVM_Devel/run/"; 
+    const std::string full_original = sampleLoc+"/OriginalIDPVM/PHYSVAL.fullStats.originalIDPVM.root";
+    const std::string split_original = sampleLoc+"/OriginalIDPVM/PHYSVAL.splitRuns.originalIDPVM.root";
+    const std::string guineaPig = sampleLoc+"/guineaPig.root";
+
+    const std::string full = sampleLoc+"/PHYSVAL.allEvents.root";
+    const std::string hadd = sampleLoc+"/PHYSVAL.rawHadd.root";
+    const std::string PP = sampleLoc+"/PHYSVAL.PP.root";
+
+
+    const std::string sglmu1_default = sampleLoc+"PHYSVAL.KeLi.sglmu1.root";
+    const std::string sglmu1_more = sampleLoc+"PHYSVAL.KeLi.sglmu1.moreBins.root";
+    const std::string sglmu100_default = sampleLoc+"PHYSVAL.KeLi.sglmu100.root";
+    const std::string sglmu100_more = sampleLoc+"PHYSVAL.KeLi.sglmu100.moreBins.root";
 
     // plots to draw - one vector for each histogram type 
     const std::vector<std::string> plots1F {
-        "run_356124/InDetGlobal/Pixel/m_Pixel_track_chi2",     
-        "run_356124/InDetGlobal/Pixel/m_Pixel_track_d0",     
-        "run_356124/InDetGlobal/Pixel/m_Pixel_track_eta",    
-        "run_356124/InDetGlobal/Pixel/m_Pixel_track_phi0",      
-        "run_356124/InDetGlobal/Pixel/m_Pixel_track_z0",      
-        "run_356124/InDetGlobal/PrimaryVertex/pvX",      
-        "run_356124/InDetGlobal/PrimaryVertex/pvY",    
-        "run_356124/InDetGlobal/PrimaryVertex/pvZ",        
-        "run_356124/InDetGlobal/PrimaryVertex/pvTrackPt",        
-        "run_356124/InDetGlobal/PrimaryVertex/pvTrackEta",     
-        "run_356124/InDetGlobal/PrimaryVertex/pvNTracks",     
-        "run_356124/InDetGlobal/PrimaryVertex/pvNPriVtx",        
-        "run_356124/InDetGlobal/PrimaryVertex/pvNPileupVtx",        
-        "run_356124/InDetGlobal/PrimaryVertex/pvN",         
-        "run_356124/InDetGlobal/PrimaryVertex/pvErrX",        
-        "run_356124/InDetGlobal/PrimaryVertex/pvErrY",       
-        "run_356124/InDetGlobal/PrimaryVertex/pvErrZ",        
-        "run_356124/InDetGlobal/PrimaryVertex/pvChiSqDof",          
-        "run_356124/InDetGlobal/BeamSpot/trkNPt",             
-        "run_356124/InDetGlobal/BeamSpot/trkPt",            
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/pT",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/eta",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/phi",   
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/z0",    
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/d0",                  
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Npixhits_per_track",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Nscthits_per_track",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Ntrthits_per_track",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Npixhits_per_track_eca",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Npixhits_per_track_barrel",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Nhits_per_track",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Npixhits_per_track_barrel",        
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Npixhits_per_track_eca",             
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Npixhits_per_track_ecc",           
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Nscthits_per_track_barrel",           
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Nscthits_per_track_eca",           
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Nscthits_per_track_ecc",       
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Ntrthits_per_track_barrel",       
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Ntrthits_per_track_eca",       
-        "run_356124/IDAlignMon/ExtendedTracks_NoTriggerSelection/GenericTracks/Ntrthits_per_track_ecc",   
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_HitContent_NPixelHits",    
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_HitContent_NPixelHoles",    
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_HitContent_NSCTHits",    
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_HitContent_NSCTHoles",    
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_HitContent_NTRTHighThresholdHits",    
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_HitContent_NTRTHits",    
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_d0_small",    
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_d0",    
-        "run_356124/MuonPhysics/TracksID/CBMuons/TracksID_CBMuons_HitContent_NPixelHits", 
-        "run_356124/SCT/GENERAL/tracks/trk_N",                      
-        "run_356124/SCT/GENERAL/tracks/trk_d0",                      
-        "run_356124/SCT/GENERAL/tracks/trk_z0",                      
-        "run_356124/SCT/GENERAL/tracks/trk_sct_hits",                      
-        "run_356124/SCT/GENERAL/tracks/trk_pt",                      
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pull_d0",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/res_d0",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_eta_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_eta_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_pt_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_pt_d0",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_d0_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_d0_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_d0_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_d0_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_d0_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_d0_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_d0_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_d0_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pull_z0",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/res_z0",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_eta_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_eta_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_pt_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_pt_z0",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_z0_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_z0_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_z0_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_z0_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_z0_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_z0_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_z0_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_z0_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pull_ptqopt",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/res_ptqopt",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_eta_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_eta_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_pt_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_pt_ptqopt",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_ptqopt_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_ptqopt_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_ptqopt_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_ptqopt_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_ptqopt_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_ptqopt_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_ptqopt_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_ptqopt_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pull_theta",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/res_theta",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_eta_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_eta_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_pt_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_pt_theta",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_theta_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_theta_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_theta_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_theta_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_theta_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_theta_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_theta_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_theta_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pull_phi",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/res_phi",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_eta_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_eta_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_pt_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_pt_phi",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_phi_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_phi_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_phi_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_phi_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_phi_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_phi_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_phi_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_phi_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pull_z0sin",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/res_z0sin",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_eta_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_eta_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullwidth_vs_pt_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/pullmean_vs_pt_z0sin",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_z0sin_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_eta_z0sin_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_z0sin_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_eta_z0sin_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_z0sin_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resolution_vs_pt_z0sin_negQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_z0sin_posQ",
+        // "SqurrielPlots/Tracks/Matched/Resolutions/Primary/resmean_vs_pt_z0sin_negQ",
     };
 
-    const std::vector<std::string> plotsTP {       
-        "run_356124/InDetGlobal/Track/trk_nIBLhits_LB",       
-        "run_356124/InDetGlobal/Track/trk_nPIXhits_LB",       
-        "run_356124/InDetGlobal/Track/trk_nSCThits_LB",       
-        "run_356124/InDetGlobal/Track/trk_nTRThits_LB",       
-        "run_356124/InDetGlobal/Track/Trk_noTRText_frac_LB",       
-        "run_356124/InDetGlobal/Track/Trk_noTRText_LB",       
-        "run_356124/InDetGlobal/Track/Trk_noIBLhits_LB",       
-        "run_356124/InDetGlobal/Track/Trk_noIBLhits_frac_LB",       
-        "run_356124/InDetGlobal/Track/Trk_noBLhits_frac_LB",       
-        "run_356124/InDetGlobal/Track/Trk_noBLhits_LB",       
-
-        "run_356124/InDetGlobal/Track/Trk_nBase_LB",       
-        "run_356124/InDetGlobal/PrimaryVertex/pvN_LB",    
-        "run_356124/Pixel/Clusters/Clusters_per_lumi",        
-        "run_356124/Pixel/Clusters/Clusters_per_lumi_B0",        
-        "run_356124/Pixel/Clusters/Clusters_per_lumi_B1",        
-        "run_356124/Pixel/Clusters/Clusters_per_lumi_B2",        
-        "run_356124/Pixel/Clusters/Clusters_per_lumi_ECA",        
-        "run_356124/Pixel/Clusters/Clusters_per_lumi_ECC",        
-        "run_356124/Pixel/Clusters/Clusters_per_lumi_IBL",    
-
-
-
-        "run_356124/Pixel/ClustersOnTrack/num_clusters_per_track_per_lumi_IBL",        
-        "run_356124/Pixel/ClustersOnTrack/num_clusters_per_track_per_lumi_ECC",        
-        "run_356124/Pixel/ClustersOnTrack/num_clusters_per_track_per_lumi_ECA",        
-        "run_356124/Pixel/ClustersOnTrack/num_clusters_per_track_per_lumi_B0",        
-        "run_356124/Pixel/ClustersOnTrack/num_clusters_per_track_per_lumi_B1",        
-        "run_356124/Pixel/ClustersOnTrack/num_clusters_per_track_per_lumi_B2",        
-        "run_356124/Pixel/ClustersOnTrack/Clusters_per_lumi_OnTrack",        
-        "run_356124/Pixel/ClustersOnTrack/Clusters_per_lumi_OnTrack_B0",        
-        "run_356124/Pixel/ClustersOnTrack/Clusters_per_lumi_OnTrack_B1",        
-        "run_356124/Pixel/ClustersOnTrack/Clusters_per_lumi_OnTrack_B2",        
-        "run_356124/Pixel/ClustersOnTrack/Clusters_per_lumi_OnTrack_ECA",        
-        "run_356124/Pixel/ClustersOnTrack/Clusters_per_lumi_OnTrack_ECC",        
-        "run_356124/Pixel/ClustersOnTrack/Clusters_per_lumi_OnTrack_IBL",       
-        "run_356124/Pixel/TrackOnTrack/HitEff_all_B0",            
-        "run_356124/Pixel/TrackOnTrack/HitEff_all_B1",            
-        "run_356124/Pixel/TrackOnTrack/HitEff_all_B2",            
-        "run_356124/Pixel/TrackOnTrack/HitEff_all_ECA",            
-        "run_356124/Pixel/TrackOnTrack/HitEff_all_ECC",            
-        "run_356124/Pixel/TrackOnTrack/HitEff_all_IBL",     
-
+    const std::vector<std::string> plotsTP {   
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_eta_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_pt_d0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_eta_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_pt_z0",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_eta_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_pt_ptqopt",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_eta_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_pt_theta",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_eta_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_pt_phi",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_eta_z0sin",
+        "SqurrielPlots/Tracks/Matched/Resolutions/Primary/sigma_vs_pt_z0sin",
     };
     SetAtlasStyle();
 
     // here we define the "samples" to include in our plot, and how they should look. 
     // See NtupleAnalysisUtils/PlotFormat.h for available options. 
     std::vector<genericPlotDef> todo {
-            genericPlotDef{ref, "Reference","PL", PlotFormat().MarkerStyle(kFullDotLarge).Color(kRed+1)},
-            genericPlotDef{test_buggy, "Tuesday (broken IBL alignment)","PL", PlotFormat().MarkerStyle(kOpenTriangleDown).Color(kGreen-3)},
-            genericPlotDef{test_n207, "Feb 07","PL", PlotFormat().MarkerStyle(kFullSquare).Color(kOrange-3)},
-            genericPlotDef{test_n210, "Feb 10","PL", PlotFormat().MarkerStyle(kFullDiamond).Color(kBlue+1)},
+            genericPlotDef{full, "Single run","PL", PlotFormat().MarkerStyle(kFullSquare).MarkerScale(1.2).Color(kRed+1)},
+            genericPlotDef{hadd, "2 runs + hadd","PL", PlotFormat().MarkerStyle(kFullDotLarge).Color(kBlue-3)},
+            genericPlotDef{PP, "2 runs + hadd + PP","PL", PlotFormat().MarkerStyle(kOpenCircle).Color(kOrange-3)},
+    };
+
+    std::vector<genericPlotDef> todo_Binning_1 {
+            genericPlotDef{sglmu1_default, "Default bins","PL", PlotFormat().MarkerStyle(kFullSquare).MarkerScale(1.2).Color(kRed+1)},
+            genericPlotDef{sglmu1_more, "add more bins","PL", PlotFormat().MarkerStyle(kFullDotLarge).Color(kBlue-3)},
+    };
+
+    std::vector<genericPlotDef> todo_Binning_100 {
+            genericPlotDef{sglmu100_default, "Default bins","PL", PlotFormat().MarkerStyle(kFullSquare).MarkerScale(1.2).Color(kRed+1)},
+            genericPlotDef{sglmu100_more, "add more bins","PL", PlotFormat().MarkerStyle(kFullDotLarge).Color(kBlue-3)},
     };
 
     // specify the look of our canvas 
@@ -201,18 +247,28 @@ int main (int argc, char** argv){
     const std::string fileNameBase = "PhysValPlots/PlotOverlay_"; 
     const std::string fileNameMultiPage = "PhysValPlots/AllPhysValPlots"; 
     // and labels... 
-    std::vector<std::string> labels {"Cookies"}; 
+    std::vector<std::string> labels {""};
+    std::vector<std::string> labelsKL1 {"1 GeV single mu"}; 
+    std::vector<std::string> labelsKL100 {"100 GeV single mu"}; 
     // now book everything
     auto plots_1D = bookThem<TH1F>(plots1F, todo,labels,fileNameBase, fileNameMultiPage, opts); 
-    auto plots_Prof = bookThem<TProfile>(plotsTP, todo,labels,fileNameBase, fileNameMultiPage, opts); 
+    auto plots_1D_resBin_1 = bookThem<TH1F>(plots1F, todo_Binning_1,labelsKL1,fileNameBase+"binCheck1GeV_", fileNameMultiPage, opts); 
+    auto plots_1D_resBin_100 = bookThem<TH1F>(plots1F, todo_Binning_100,labelsKL100,fileNameBase+"binCheck100GeV_", fileNameMultiPage, opts); 
+    auto plots_TP = bookThem<TProfile>(plotsTP, todo,labels,fileNameBase, fileNameMultiPage, opts); 
 
     // and plot it
     PlotUtils::startMultiPagePdfFile(fileNameMultiPage); 
     for (auto & p : plots_1D){
+        // DefaultPlotting::draw1D(p);
+    }
+    for (auto & p : plots_1D_resBin_1){
         DefaultPlotting::draw1D(p);
     }
-    for (auto & p : plots_Prof){
+    for (auto & p : plots_1D_resBin_100){
         DefaultPlotting::draw1D(p);
+    }
+    for (auto & p : plots_TP){
+        // DefaultPlotting::draw1D(p);
     }
     PlotUtils::endMultiPagePdfFile(fileNameMultiPage); 
 
