@@ -16,7 +16,7 @@ find_package( ROOT COMPONENTS MathCore RIO Core Tree Hist )
 # you can add them to PRIVATE_LINK_LIBRARIES instead.  Your clients will
 # then not be able to see its header files.  This reduces compile time
 # dependencies.  If in doubt, use LINK_LIBRARIES instead.
-atlas_add_library( IDPhysValPlottingLib src/*.cxx
+atlas_add_library( IDPhysValPlottingLib Root/*.cxx
                    PUBLIC_HEADERS IDPhysValPlotting
                    INCLUDE_DIRS ${ROOT_INCLUDE_DIRS}
                    LINK_LIBRARIES ${ROOT_LIBRARIES} NtupleAnalysisUtils
@@ -34,6 +34,6 @@ foreach(_exeFile ${files})
     atlas_add_executable( ${_theExec}
     ${_exeFile}
     INCLUDE_DIRS ${ROOT_INCLUDE_DIRS}
-    LINK_LIBRARIES ${ROOT_LIBRARIES} IDPhysValPlottingLib )
+    LINK_LIBRARIES ${ROOT_LIBRARIES} IDPhysValPlottingLib)
     endif()
 endforeach()
