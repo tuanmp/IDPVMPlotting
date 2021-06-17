@@ -14,7 +14,6 @@ std::vector <PlotContent<TH1D> > HistoBooking::bookEffs(
 
     /// now, loop over every histogram to include, and add each to our task list 
     for (auto & item : itemsToDraw){
-        std::cout << item << std::endl;
         /// First, we identify the output file name, based on the name of the plot
         TString forFname = item;
         forFname = forFname.ReplaceAll("/","_"); 
@@ -39,7 +38,7 @@ std::vector <PlotContent<TH1D> > HistoBooking::bookEffs(
         }
         if (forFname.Contains("vs_pt")){
             // draw pt with a log-x
-            LocalOpts.XAxis(AxisConfig(LocalOpts.XAxis()).ExtraTitleOffset(0.7).Log(true));
+            LocalOpts.XAxis(AxisConfig(LocalOpts.XAxis()).ExtraTitleOffset(0.7).Log(true).Min(0.4));
         }
 
         std::vector<Plot<TH1D>> thePlots; 

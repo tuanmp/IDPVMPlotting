@@ -25,10 +25,25 @@ int main(){
         PlotFormat().Color(colTest2).MarkerStyle(kFullDiamond).LegendOption("PL").LegendTitle("r12720, custom <#mu>").ExtraDrawOpts("LP").LineWidth(2).CustomString("FileName",inFile20)
     }; 
 
+    auto myOpts = CanvasOptions().YAxis(AxisConfig().TopPadding(0.8).BottomPadding(0.15)).RatioAxis(AxisConfig().Title("Ratio w.r.t Ref").Symmetric(true).SymmetrisationPoint(1.)); 
+
     auto multi = PlotUtils::startMultiPagePdfFile("CheckNewRtags"); 
-    auto efficiencies = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(refFile,IDPVMHistoPaths::path_Efficiency()),  formats, {"t#bar{t} events", "Hard-scatter charged particles","Note: Pileup differs between reference and test"}, "EffCheck_",multi); 
+    auto efficiencies = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(refFile,IDPVMHistoPaths::path_Efficiency()),  formats, {"t#bar{t} events", "Hard-scatter charged particles","Note: Pileup differs between reference and test"}, "EffCheck_",multi,myOpts); 
+    auto hitsHoles = HistoBooking::bookThem<TProfile>(IDPVMHistoPaths::scanPath<TProfile>(refFile,IDPVMHistoPaths::path_hitsOnTrack_Matched()),  formats, {"t#bar{t} events", "Hard-scatter charged particles","Note: Pileup differs between reference and test"}, "HitHoleCheck_",multi,myOpts); 
+
+    // find the resolutions that are actually interesting - veto pull projections
+    auto listOfResos = IDPVMHistoPaths::scanPath<TH1F>(refFile,IDPVMHistoPaths::path_resolutions()); 
+    std::vector<std::string> funResos{}; 
+    for (auto & reso : listOfResos){
+        if (reso.find("resProjection") != std::string::npos) continue; 
+        if (reso.find("pullProjection") != std::string::npos) continue;
+        funResos.push_back(reso);  
+    }
+    auto resos = HistoBooking::bookThem<TH1F>(funResos,  formats, {"t#bar{t} events", "Hard-scatter charged particles","Note: Pileup differs between reference and test"}, "ResoCheck_",multi,myOpts); 
 
     for (auto & p : efficiencies) DefaultPlotting::draw1D(p); 
+    for (auto & p : hitsHoles) DefaultPlotting::draw1D(p); 
+    for (auto & p : resos) DefaultPlotting::draw1D(p); 
                                                 
     return 0; 
 }
