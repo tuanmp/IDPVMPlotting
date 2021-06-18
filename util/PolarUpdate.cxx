@@ -64,8 +64,8 @@ class correctingUpdator{
         /// after N steps, reset the polar coordinate using the precise cartesian 
         if (++m_currIt == m_maxIt){
             m_currIt = 0;
-            polar correctPolarStart = precisePol(start.cart); 
-            return preciseUpdate(coordinateSet{start.cart,correctPolarStart},step);  
+            cartesian newCart {start.cart.x + step.x, start.cart.y + step.y}; 
+            return coordinateSet{newCart,precisePol(newCart)};  
         }
         else{
             return approxUpdate(start,step); 
