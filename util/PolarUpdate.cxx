@@ -64,7 +64,9 @@ class correctingUpdator{
         /// after N steps, reset the polar coordinate using the precise cartesian 
         if (++m_currIt == m_maxIt){
             m_currIt = 0;
+            /// first update only cartesian (precise) 
             cartesian newCart {start.cart.x + step.x, start.cart.y + step.y}; 
+            /// then get the new polar from the cartesian
             return coordinateSet{newCart,precisePol(newCart)};  
         }
         else{
@@ -134,10 +136,12 @@ int main(){
     /// for every step, compare estimate to real in cartesian space
     for (auto & step : steps){ 
         currentApprox = approxUpdate(currentApprox, step);
+        /// get the cartesian coordinates corresponding to the approximate polar ones
         cartesian estimatedCart = preciseCart(currentApprox.pol);  
-        /// the cartesian component is always accurate - compare to approximate polar component
+        /// the stored cartesian component is always accurate - compare to approximate polar component
         double errorX = currentApprox.cart.x - estimatedCart.x; 
         double errorY = currentApprox.cart.y - estimatedCart.y; 
+        /// base the score on a geometric mean
         score += (errorX*errorX+errorY*errorY);
     }
     double scoreApprox = std::sqrt(score)/(double)nSteps; 
@@ -145,9 +149,12 @@ int main(){
     score=0.; 
     for (auto & step : steps){ 
         currentCorrApprox = updateEvery10.update(currentCorrApprox, step); 
+        /// get the cartesian coordinates corresponding to the approximate polar ones
         cartesian estimatedCart = preciseCart(currentCorrApprox.pol);  
+        /// the stored cartesian component is always accurate - compare to approximate polar component
         double errorX = currentCorrApprox.cart.x - estimatedCart.x; 
         double errorY = currentCorrApprox.cart.y - estimatedCart.y; 
+        /// base the score on a geometric mean
         score += (errorX*errorX+errorY*errorY);
     }
     double scoreCorrApprox = std::sqrt(score)/(double)nSteps;
