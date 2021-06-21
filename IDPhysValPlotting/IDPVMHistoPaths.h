@@ -7,6 +7,7 @@
 namespace IDPVMHistoPaths{
 
     std::string path_Efficiency(bool TightPrimary=false); 
+    std::string path_params(bool TightPrimary=false); 
     std::string path_resolutions(bool TightPrimary=false); 
     std::string path_unlinked(bool TightPrimary=false); 
     std::string path_fake(bool TightPrimary=false); 

@@ -8,6 +8,9 @@ namespace IDPVMHistoPaths{
     std::string path_resolutions(bool TightPrimary){
         return std::string("SquirrelPlots/")+std::string(TightPrimary ? "TightPrimary/": "")+"Tracks/Matched/Resolutions/Primary/"; 
     } 
+    std::string path_params(bool TightPrimary){
+        return std::string("SquirrelPlots/")+std::string(TightPrimary ? "TightPrimary/": "")+"Tracks/Selected/Parameters/"; 
+    } 
     std::string path_unlinked(bool TightPrimary){
         return std::string("SquirrelPlots/")+std::string(TightPrimary ? "TightPrimary/": "")+"Tracks/Unlinked/FakeRate/"; 
     } 
