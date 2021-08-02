@@ -26,7 +26,7 @@ template <class HistType> std::vector <PlotContent<HistType> > HistoBooking::boo
 
         if (forFname.Contains("vs_pt")){
             // draw pt with a log-x
-            LocalOpts.XAxis(AxisConfig().ExtraTitleOffset(0.7).Log(true));
+            LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(true).Title("Hi! I am an X axis");
         }
 
         std::vector<Plot<HistType>> thePlots; 

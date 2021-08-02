@@ -18,7 +18,7 @@ namespace IDPVMHistoPaths{
     /// scan helper. Scans a folder and returns a list of all found 
     /// objects of the desired type. Use to draw the entire content 
     /// of a given folder. 
-    template <typename HistType> std::vector<std::string> scanPath(const std::string & fname, const std::string & path, bool recursion=false);
+    template <typename HistType> std::vector<std::string> scanPath(const std::string & fname, const std::string & path);
 
 }
 

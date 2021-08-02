@@ -29,16 +29,17 @@ std::vector <PlotContent<TH1D> > HistoBooking::bookEffs(
         auto LocalOpts = opts; 
         if (isFake){
             // Fakes get a log-y
-            LocalOpts.YAxis(AxisConfig(LocalOpts.XAxis()).TopPadding(0.5).Min(1e-5).Max(1).Title("Fake rate").Log(true));
+            LocalOpts.YAxis(AxisConfig(LocalOpts.YAxis()).TopPadding(0.5).Min(1e-5).Max(1).Title("Fake rate").Log(true));
         }
         else if (isEff) {
             /// Use an epsilon min to avoid catching empty bins in the ratio determination
-            LocalOpts.YAxis(AxisConfig(LocalOpts.YAxis()).TopPadding(0.8).BottomPadding(0.3).Min(1e-8).Max(1).Fixed(false).Title("Efficiency"));
-            LocalOpts.RatioAxis(AxisConfig(LocalOpts.RatioAxis()).Min(.1).Max(3).SymmetrisationPoint(1.).Symmetric(true)); 
+            LocalOpts.YAxis.modify().TopPadding(0.8).BottomPadding(0.3).Min(1e-8).Max(1).Fixed(false).Title("Efficiency");
+            LocalOpts.RatioAxis.modify().Min(.1).Max(3).SymmetrisationPoint(1.).Symmetric(true); 
         }
         if (forFname.Contains("vs_pt")){
             // draw pt with a log-x
-            LocalOpts.XAxis(AxisConfig(LocalOpts.XAxis()).ExtraTitleOffset(0.7).Log(true).Min(0.4));
+            LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(true).Title("Hi! I am an X axis");
+            LocalOpts.YAxis.modify().Title("myYaxis");
         }
 
         std::vector<Plot<TH1D>> thePlots; 
