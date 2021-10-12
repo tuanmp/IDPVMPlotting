@@ -4,7 +4,7 @@
 atlas_subdir( IDPhysValPlotting )
 
 # Declare external dependencies ... default here is to include ROOT
-find_package( ROOT COMPONENTS MathCore RIO Core Tree Hist )
+find_package( ROOT COMPONENTS MathCore RIO Core Physics Tree Math Hist Vector )
 
 
 # Declare package as a library
