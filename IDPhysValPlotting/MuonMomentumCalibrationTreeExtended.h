@@ -12,6 +12,9 @@ class MuonMomentumCalibrationTreeExtended: public MuonMomentumCalibrationTree{
             if(t) getMissedBranches(t);
         }
      /// List of branch members
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> weight{[](MuonMomentumCalibrationTree &t){
+         return t.EventWeight() * t.PileupWeight() / 1942.; 
+     }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_CB_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
          return std::sqrt(t.Pos_CB_TrackCovMatrix(14)); 
      }, this}; 
