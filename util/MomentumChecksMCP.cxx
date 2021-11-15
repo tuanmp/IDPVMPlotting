@@ -1,480 +1,11 @@
-#include "IDPhysValPlotting/MuonMomentumCalibrationTreeExtended.h"
-#include "IDPhysValPlotting/MuonMomentumCalibrationTreeExtended.h"
+#include "IDPhysValPlotting/MuonMomentumSamples.h"
+#include "IDPhysValPlotting/MuonMomentumHelpers.h"
 #include "IDPhysValPlotting/ResoUtils.h"
 #include <TVector2.h> 
-namespace {
-    constexpr double pi_over4 = std::acos(-1) / 4;
-}
+#include <TProfile2D.h> 
 
-double phiModPi4(double phi){
-    return std::fmod(TVector2::Phi_0_2pi(phi), pi_over4);
-}
-
-Selection<MuonMomentumCalibrationTreeExtended> getPtWindow_Pos(double lo, double hi){
-    return Selection<MuonMomentumCalibrationTreeExtended>([hi,lo](MuonMomentumCalibrationTreeExtended& t){ return (t.Pos_TruthPt() > lo && t.Pos_TruthPt() < hi);}); 
-}
-Selection<MuonMomentumCalibrationTreeExtended> getPtWindow_Neg(double lo, double hi){
-    return Selection<MuonMomentumCalibrationTreeExtended>([hi,lo](MuonMomentumCalibrationTreeExtended& t){ return (t.Neg_TruthPt() > lo && t.Neg_TruthPt() < hi);}); 
-}
-
-Selection<MuonMomentumCalibrationTreeExtended> getAbsEtaWindow_Pos(double lo, double hi){
-    return Selection<MuonMomentumCalibrationTreeExtended>([hi,lo](MuonMomentumCalibrationTreeExtended& t){ return (std::abs(t.Pos_TruthEta()) >  lo && std::abs(t.Pos_TruthEta()) < hi);}); 
-}
-Selection<MuonMomentumCalibrationTreeExtended> getAbsEtaWindow_Neg(double lo, double hi){
-    return Selection<MuonMomentumCalibrationTreeExtended>([hi,lo](MuonMomentumCalibrationTreeExtended& t){ return (std::abs(t.Neg_TruthEta()) >  lo && std::abs(t.Neg_TruthEta()) < hi);}); 
-}
-
-std::shared_ptr<TH2D> normaliseInBin(std::shared_ptr<TH2D> in){
-    int ny = in->GetNbinsY(); 
-    for (int kx = 1; kx <= in->GetNbinsX(); ++kx){
-        double integ = in->Integral(kx,kx,1,ny); 
-        double normFact= 0; 
-        if (integ !=0) normFact=1/integ; 
-        for (int ky = 0; ky < ny+1; ++ky){
-            in->SetBinContent(kx,ky,in->GetBinContent(kx,ky)*normFact); 
-            in->SetBinError(kx,ky,in->GetBinError(kx,ky)*normFact); 
-        }
-    }
-    return in; 
-}
-TH1D* getMedian(Plot<TH2D> h2){
-    int ny = h2->GetNbinsY(); 
-    TH1D* profx = h2->ProjectionX(); 
-    for (int kx = 1; kx <= h2->GetNbinsX(); ++kx){
-        double integ = h2->Integral(kx,kx,1,ny); 
-        double sum = 0; 
-        for (int ky = 0; ky < ny+1; ++ky){
-            sum += h2->GetBinContent(kx,ky); 
-            if (sum >= 0.5 * integ){
-                profx->SetBinContent(kx,h2->GetYaxis()->GetBinCenter(ky));
-                profx->SetBinError(kx,h2->GetYaxis()->GetBinWidth(ky));  
-                break; 
-            }
-            profx->SetBinContent(kx,h2->GetYaxis()->GetBinCenter(ny));
-            profx->SetBinError(kx,h2->GetYaxis()->GetBinWidth(ny));  
-        }
-    }
-    return profx; 
-
-
-}
-
-void fillMomErrorRel_ID_1D_Pos(TH1D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_ID_TrackCov_qoverp() / std::abs(t.Pos_ID_QoverP()), t.weight()); 
-}
-void fillMomErrorRel_ID_1D_Neg(TH1D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_ID_TrackCov_qoverp() / std::abs(t.Neg_ID_QoverP()), t.weight()); 
-}
-void fillMomErrorRel_ME_1D_Pos(TH1D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_ME_TrackCov_qoverp() / std::abs(t.Pos_ME_QoverP()), t.weight()); 
-}
-void fillMomErrorRel_ME_1D_Neg(TH1D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_ME_TrackCov_qoverp() / std::abs(t.Neg_ME_QoverP()), t.weight()); 
-}
-void fillMomErrorRel_MS_1D_Pos(TH1D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_MS_TrackCov_qoverp() / std::abs(t.Pos_MS_QoverP()), t.weight()); 
-}
-void fillMomErrorRel_MS_1D_Neg(TH1D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_MS_TrackCov_qoverp() / std::abs(t.Neg_MS_QoverP()), t.weight()); 
-}
-void fillMomErrorRel_CB_1D_Pos(TH1D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_CB_TrackCov_qoverp() / std::abs(t.Pos_CB_QoverP()), t.weight()); 
-}
-void fillMomErrorRel_CB_1D_Neg(TH1D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_CB_TrackCov_qoverp() / std::abs(t.Neg_CB_QoverP()), t.weight()); 
-}
-
-
-void fillMomResidualRel_vsPt_ID_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPt(),(t.Pos_ID_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPt_ID_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPt(),(t.Neg_ID_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPt_ME_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPt(),(t.Pos_ME_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPt_ME_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPt(),(t.Neg_ME_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPt_MS_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPt(),(t.Pos_MS_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPt_MS_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPt(),(t.Neg_MS_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPt_CB_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPt(),(t.Pos_CB_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPt_CB_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPt(),(t.Neg_CB_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-
-void fillMomResidualRel_vsEta_ID_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),(t.Pos_ID_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsEta_ID_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),(t.Neg_ID_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsEta_ME_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),(t.Pos_ME_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsEta_ME_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),(t.Neg_ME_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsEta_MS_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),(t.Pos_MS_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsEta_MS_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),(t.Neg_MS_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsEta_CB_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),(t.Pos_CB_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsEta_CB_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),(t.Neg_CB_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-
-void fillMomResidualRel_vsPhi_ID_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),(t.Pos_ID_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhi_ID_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),(t.Neg_ID_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhi_ME_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),(t.Pos_ME_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhi_ME_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),(t.Neg_ME_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhi_MS_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),(t.Pos_MS_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhi_MS_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),(t.Neg_MS_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhi_CB_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),(t.Pos_CB_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhi_CB_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),(t.Neg_CB_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-
-
-void fillMomResidualRel_vsPhiMP4_ID_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),(t.Pos_ID_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhiMP4_ID_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),(t.Neg_ID_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhiMP4_ME_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),(t.Pos_ME_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhiMP4_ME_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),(t.Neg_ME_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhiMP4_MS_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),(t.Pos_MS_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhiMP4_MS_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),(t.Neg_MS_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhiMP4_CB_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),(t.Pos_CB_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_Truth_qoverp(), t.weight()); 
-}
-void fillMomResidualRel_vsPhiMP4_CB_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),(t.Neg_CB_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_Truth_qoverp(), t.weight()); 
-}
-
-
-void fillMomPullRel_vsEta_ID_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),(t.Pos_ID_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_ID_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsEta_ID_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),(t.Neg_ID_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_ID_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsEta_ME_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),(t.Pos_ME_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_ME_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsEta_ME_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),(t.Neg_ME_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_ME_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsEta_MS_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),(t.Pos_MS_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_MS_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsEta_MS_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),(t.Neg_MS_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_MS_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsEta_CB_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),(t.Pos_CB_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_CB_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsEta_CB_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),(t.Neg_CB_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_CB_TrackCov_qoverp(), t.weight()); 
-}
-
-
-void fillMomPullRel_vsPt_ID_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthPt()),(t.Pos_ID_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_ID_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPt_ID_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthPt()),(t.Neg_ID_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_ID_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPt_ME_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthPt()),(t.Pos_ME_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_ME_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPt_ME_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthPt()),(t.Neg_ME_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_ME_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPt_MS_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthPt()),(t.Pos_MS_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_MS_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPt_MS_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthPt()),(t.Neg_MS_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_MS_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPt_CB_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthPt()),(t.Pos_CB_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_CB_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPt_CB_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthPt()),(t.Neg_CB_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_CB_TrackCov_qoverp(), t.weight()); 
-}
-
-
-void fillMomPullRel_vsPhiMP4_ID_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),(t.Pos_ID_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_ID_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhiMP4_ID_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),(t.Neg_ID_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_ID_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhiMP4_ME_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),(t.Pos_ME_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_ME_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhiMP4_ME_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),(t.Neg_ME_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_ME_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhiMP4_MS_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),(t.Pos_MS_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_MS_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhiMP4_MS_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),(t.Neg_MS_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_MS_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhiMP4_CB_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),(t.Pos_CB_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_CB_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhiMP4_CB_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),(t.Neg_CB_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_CB_TrackCov_qoverp(), t.weight()); 
-}
-
-void fillMomPullRel_vsPhi_ID_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),(t.Pos_ID_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_ID_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhi_ID_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),(t.Neg_ID_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_ID_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhi_ME_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),(t.Pos_ME_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_ME_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhi_ME_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),(t.Neg_ME_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_ME_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhi_MS_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),(t.Pos_MS_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_MS_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhi_MS_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),(t.Neg_MS_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_MS_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhi_CB_1D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),(t.Pos_CB_QoverP() - t.Pos_Truth_qoverp())/ t.Pos_CB_TrackCov_qoverp(), t.weight()); 
-}
-void fillMomPullRel_vsPhi_CB_1D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),(t.Neg_CB_QoverP() - t.Neg_Truth_qoverp())/ t.Neg_CB_TrackCov_qoverp(), t.weight()); 
-}
-
-void fillMomErrorRel_ID_vsEta_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),t.Pos_ID_TrackCov_qoverp() / t.Pos_ID_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_ID_vsEta_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),t.Neg_ID_TrackCov_qoverp() / t.Neg_ID_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_ME_vsEta_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),t.Pos_ME_TrackCov_qoverp() / t.Pos_ME_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_ME_vsEta_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),t.Neg_ME_TrackCov_qoverp() / t.Neg_ME_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_MS_vsEta_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),t.Pos_MS_TrackCov_qoverp() / t.Pos_MS_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_MS_vsEta_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),t.Neg_MS_TrackCov_qoverp() / t.Neg_MS_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_CB_vsEta_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Pos_TruthEta()),t.Pos_CB_TrackCov_qoverp() / t.Pos_CB_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_CB_vsEta_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(std::abs(t.Neg_TruthEta()),t.Neg_CB_TrackCov_qoverp() / t.Neg_CB_QoverP(),  t.weight()); 
-}
-
-void fillMomErrorRel_ID_vsPhi_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),t.Pos_ID_TrackCov_qoverp() / t.Pos_ID_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_ID_vsPhi_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),t.Neg_ID_TrackCov_qoverp() / t.Neg_ID_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_ME_vsPhi_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),t.Pos_ME_TrackCov_qoverp() / t.Pos_ME_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_ME_vsPhi_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),t.Neg_ME_TrackCov_qoverp() / t.Neg_ME_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_MS_vsPhi_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),t.Pos_MS_TrackCov_qoverp() / t.Pos_MS_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_MS_vsPhi_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),t.Neg_MS_TrackCov_qoverp() / t.Neg_MS_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_CB_vsPhi_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Pos_TruthPhi(),t.Pos_CB_TrackCov_qoverp() / t.Pos_CB_QoverP(),  t.weight()); 
-}
-void fillMomErrorRel_CB_vsPhi_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(t.Neg_TruthPhi(),t.Neg_CB_TrackCov_qoverp() / t.Neg_CB_QoverP(),  t.weight()); 
-}
-
-void fillMomErrorRel_ID_vsPhiMP4_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),t.Pos_ID_TrackCov_qoverp() / std::abs(t.Pos_ID_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_ID_vsPhiMP4_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),t.Neg_ID_TrackCov_qoverp() / std::abs(t.Neg_ID_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_ME_vsPhiMP4_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),t.Pos_ME_TrackCov_qoverp() / std::abs(t.Pos_ME_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_ME_vsPhiMP4_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),t.Neg_ME_TrackCov_qoverp() / std::abs(t.Neg_ME_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_MS_vsPhiMP4_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),t.Pos_MS_TrackCov_qoverp() / std::abs(t.Pos_MS_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_MS_vsPhiMP4_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),t.Neg_MS_TrackCov_qoverp() / std::abs(t.Neg_MS_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_CB_vsPhiMP4_2D_Pos(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),t.Pos_CB_TrackCov_qoverp() / std::abs(t.Pos_CB_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_CB_vsPhiMP4_2D_Neg(TH2D* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),t.Neg_CB_TrackCov_qoverp() / std::abs(t.Neg_CB_QoverP()),  t.weight()); 
-}
-
-
-void fillMomErrorRel_ID_vsPhiMP4_Prof_Pos(TProfile* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),t.Pos_ID_TrackCov_qoverp() / std::abs(t.Pos_ID_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_ID_vsPhiMP4_Prof_Neg(TProfile* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),t.Neg_ID_TrackCov_qoverp() / std::abs(t.Neg_ID_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_ME_vsPhiMP4_Prof_Pos(TProfile* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),t.Pos_ME_TrackCov_qoverp() / std::abs(t.Pos_ME_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_ME_vsPhiMP4_Prof_Neg(TProfile* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),t.Neg_ME_TrackCov_qoverp() / std::abs(t.Neg_ME_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_MS_vsPhiMP4_Prof_Pos(TProfile* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),t.Pos_MS_TrackCov_qoverp() / std::abs(t.Pos_MS_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_MS_vsPhiMP4_Prof_Neg(TProfile* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),t.Neg_MS_TrackCov_qoverp() / std::abs(t.Neg_MS_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_CB_vsPhiMP4_Prof_Pos(TProfile* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Pos_TruthPhi()),t.Pos_CB_TrackCov_qoverp() / std::abs(t.Pos_CB_QoverP()),  t.weight()); 
-}
-void fillMomErrorRel_CB_vsPhiMP4_Prof_Neg(TProfile* h, MuonMomentumCalibrationTreeExtended &t){
-    h->Fill(phiModPi4(t.Neg_TruthPhi()),t.Neg_CB_TrackCov_qoverp() / std::abs(t.Neg_CB_QoverP()),  t.weight()); 
-}
-// Custom 2D plotting method, adding a few custom tweaks beyond what the defaults provide 
-
-void drawReso2D(PlotContent<TH2D>& pc){
-    SetAtlasStyle();
-    pc.populateAll();
-    CanvasOptions canvasOpts = pc.getCanvasOptions();
-    // gStyle->SetPalette(kInvertedDarkBodyRadiator);
-    // TColor::InvertPalette(); 
-
-
-    gStyle->SetPalette(canvasOpts.ColorPalette());
-    static Int_t  colors[2000];
-    static Bool_t initialized = kFALSE;
-
-    Double_t Red[7]    = { 1.00, 0.85, 0.6, 0.9, 0.8, 0.5, 0.2    };
-    Double_t Green[7]  = { 1.00, 0.85, 0.2, 0.3, 0.7, 0.7, 0.8      };
-    Double_t Blue[7]   = { 1.00, 1.00, 0.8, 0.3, 0.2, 0.2, 0.1    };
-    Double_t Length[7] = { 0.00, 0.05, 0.2, 0.4, 0.6, 0.8, 1.0     };
-
-    if(!initialized){
-        Int_t FI = TColor::CreateGradientColorTable(7,Length,Red,Green,Blue,2000);
-        for (int i=0; i<2000; i++) colors[i] = FI+i;
-        initialized = kTRUE;
-    //   return ;
-    }
-    gStyle->SetPalette(2000,colors);
-
-    std::shared_ptr<TCanvas> can = PlotUtils::prepareCanvas(canvasOpts);
-    
-    auto plots = pc.getPlots();
-
-    std::vector<TLatex*> LegLabels; 
-    auto first = plots.front(); 
-    size_t iter = 0; 
-    for (auto& plot : plots){
-        ++iter; 
-        // plot->Set
-        std::vector<Plot<TH2D>> forRange {plot}; 
-        auto theFrame = PlotUtils::drawTopFrame(forRange, canvasOpts); 
-        auto range = PlotUtils::getZRange(forRange,canvasOpts);
-        LegLabels.push_back(PlotUtils::drawTLatex(canvasOpts.LegendStartX(),canvasOpts.LegendStartY(), plot.plotFormat().LegendTitle()));
-        plot->SetMinimum(0); 
-        // if (range.first < canvasOpts.ZAxis().Min()) plot->SetMinimum(canvasOpts.ZAxis().Min()); 
-        plot->SetMaximum(range.second); 
-        plot->SetContour(2000);
-        // if (plot->GetMinimum() > 0) gPad->SetLogz(); 
-        plot->Draw("colz");        
-        // Plot<TH1D> profx{CopyExisting<TH1D>(plot->ProfileX()), PlotFormat().MarkerStyle(kOpenCircle).MarkerColor(kGray+2).LegendOption("PL").LegendTitle("Mean value").MarkerSize(0.4)}; 
-        // Plot<TH1D> medx{CopyExisting<TH1D>(getMedian(plot)), PlotFormat().MarkerStyle(kOpenSquare).MarkerColor(kGray+2).LegendOption("PL").LegendTitle("Median value").MarkerSize(0.4)}; 
-        // profx->Draw("SAMEPL"); 
-        // medx->Draw("SAMEPL"); 
-        if (plot->GetNbinsX() < 15 && plot->GetNbinsY() < 15){
-            gStyle->SetPaintTextFormat(".2f");  
-            plot->SetMarkerColor(kGray+2); 
-            plot->Draw("SAMETEXT");      
-        }
-        // PlotUtils::drawLegend(std::vector<Plot<TH1D>>{profx,medx}, canvasOpts); 
-        gPad->SetRightMargin(0.17);
-        auto labelsToDraw = pc.getLabels(); 
-        labelsToDraw.push_back(plot.plotFormat().LegendTitle()); 
-        PlotUtils::drawLabels(labelsToDraw, canvasOpts); 
-        PlotUtils::saveCanvas (can, pc.getFileName()+"_"+std::to_string(iter), canvasOpts);
-        if (pc.getMultiPagePdfHandle()) pc.getMultiPagePdfHandle()->saveCanvas(can); 
-    }
-    PlotUtils::drawLabels(pc.getLabels(),canvasOpts);
-}
-
-/// fast vector processing
-void drawReso2D(std::vector<PlotContent<TH2D>>& pcs){
-    for (auto & pc : pcs) drawReso2D(pc); 
-}
-/// not really needed, but fun! 
-template <typename P, typename... others> void drawReso2D(P& p, others... other){
-    drawReso2D(p); 
-    drawReso2D(other...); 
-}
-
-/// define a kinematic region 
-struct Region{
-    std::string title{""}; 
-    std::string label{""}; 
-    double ptMin{0.};
-    double ptMax{0.};
-    double etaMin{0.};
-    double etaMax{0.};
-};
+using namespace MuonMomentumHelpers;
+using namespace MuonMomentumSamples;
 
 
 int main(){
@@ -588,6 +119,9 @@ int main(){
     };
     std::vector<Region> ResoRegions_pt{
         Region{
+            "PtBin0","5 GeV < p_{T} < 10 GeV", 5.,10.,0,2.5
+        },
+        Region{
             "PtBin1","10 GeV < p_{T} < 20 GeV", 10.,20.,0,2.5
         },
         Region{
@@ -614,120 +148,28 @@ int main(){
     /// Book the input sample
     //////////////////////////////////////////////
 
-    // use the commented one if you have no local copy on hand 
-    // const std::string & eosPrefix = "root://eosatlas.cern.ch//eos/atlas/atlascerngroupdisk/perf-muon/MuonMomentumCalibration/muonptcalib_v05/raw/group.perf-muons.mc16_13TeV.361107.PowhegPythia8EvtGen_AZNLOCTEQ6L1_Zmumu.NTUP_MCP.r10724_p4145_muonptcalib_v05mcfix_EXT0/"; 
-    const std::string & eosPrefix = "/scratch/Datasets/MCP/NTUP_MUONRES/group.perf-muons.mc16_13TeV.361107.PowhegPythia8EvtGen_AZNLOCTEQ6L1_Zmumu.NTUP_MCP.r10724_p4145_muonptcalib_v05mcfix_EXT0/"; 
-
-
     Selection<MuonMomentumCalibrationTreeExtended> sel_baseline([](MuonMomentumCalibrationTreeExtended &t){
         return (
-            t.Pos_TruthPt() > 10 && t.Neg_TruthPt() > 10 && t.Pos_TruthPt()< 120 && t.Neg_TruthPt()< 120 && t.Neg_IsCBMuon()  && t.Pos_IsCBMuon()  && t.Pair_IsOppCharge() && t.Pair_CB_Mass() > 60 && t.Pair_CB_Mass() < 120
+            t.Pos_TruthPt() > 3 && t.Neg_TruthPt() > 3 && t.Pos_TruthPt()< 120 && t.Neg_TruthPt()< 120 && t.Neg_IsCBMuon()  && t.Pos_IsCBMuon()  && t.Pair_IsOppCharge() && ((t.Pair_CB_Mass() > 60 && t.Pair_CB_Mass() < 120) || (t.Pair_CB_Mass() > 2.9 && t.Pair_CB_Mass() < 3.5))
         );
     });
 
-    Sample<MuonMomentumCalibrationTreeExtended> MCP;
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000001.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000002.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000003.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000004.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000005.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000006.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000007.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000008.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000009.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000010.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000011.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000012.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000013.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000014.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000015.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000016.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000017.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000018.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000019.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000020.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000021.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000022.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000023.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000024.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000025.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000026.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000027.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000028.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000029.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000030.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000031.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000032.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000033.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000034.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000035.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000036.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000037.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000038.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000039.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000040.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000041.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000042.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000043.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000044.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000045.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000046.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000047.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000048.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000049.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000050.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000051.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000052.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000053.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000054.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000055.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000056.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000057.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000058.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000059.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000060.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000061.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000062.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000063.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000065.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000066.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000067.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000068.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000069.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000070.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000072.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000073.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000074.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000075.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000076.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000077.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000079.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000080.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000082.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000083.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000084.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000085.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000086.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000088.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000089.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000090.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000091.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000092.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000093.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000094.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000095.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000096.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000097.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000098.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
-    MCP.addFile(eosPrefix+"group.perf-muons.23950124.EXT0._000099.NTUP_MCScale.root","MuonMomentumCalibrationTree",sel_baseline); 
+    // Sample<MuonMomentumCalibrationTreeExtended> MCP = getSample_Zmumu(sel_baseline,2); 
+    // MCP.addFilesFrom(getSample_JPsi(sel_baseline, 2)); 
 
+    Sample<MuonMomentumCalibrationTreeExtended> MCP = getSample_Data(sel_baseline, 7); 
 
+    const std::string samplePrefix = "Data"; 
+    const std::string sampleLabel = "Data"; 
+
+    // const std::string samplePrefix = "Zmumu"; 
+    // const std::string sampleLabel = "Z#rightarrow #mu#mu"; 
 
     //////////////////////////////////////////////
     /// Define the visuals of the histograms to be drawn. 
     //////////////////////////////////////////////
 
-    PlotFormat pf_nominal = PlotFormat().Color(kBlack).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("Z#rightarrow #mu#mu"); 
+    PlotFormat pf_nominal = PlotFormat().Color(kBlack).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle(sampleLabel); 
     PlotFormat pf_ID_filled = PlotFormat().Color(kBlue-6).MarkerStyle(kDot).FillStyle(1001).FillAlpha(0.4).LegendOption("FL").ExtraDrawOpts("HISTE0)").LegendTitle("ID track"); 
     PlotFormat pf_ME_filled = PlotFormat().Color(kRed).MarkerStyle(kDot).FillStyle(1001).FillAlpha(0.4).LegendOption("FL").ExtraDrawOpts("HISTE0)").LegendTitle("ME track"); 
     PlotFormat pf_MS_filled = PlotFormat().Color(kViolet).MarkerStyle(kDot).FillStyle(1001).FillAlpha(0.4).LegendOption("FL").ExtraDrawOpts("HISTE0)").LegendTitle("MS track"); 
@@ -776,6 +218,12 @@ int main(){
     CanvasOptions copt_err_2D_Eta = CanvasOptions().OtherLabelStepY(0.03).OtherLabelStartY(-0.1).LegendStartY(-0.01).LegendEndY(-0.2).RightMargin(0.2);
     copt_err_2D_Eta.ZAxis.modify().Title("#sigma_{q/pT} / (q/p_{T})").Log(false).Min(0);
 
+    CanvasOptions copt_err_2D_EtaPhi = CanvasOptions().OtherLabelStepY(0.03).OtherLabelStartY(-0.1).LegendStartY(-0.01).LegendEndY(-0.2).RightMargin(0.2);
+    copt_err_2D_EtaPhi.ZAxis.modify().Title("#sigma_{q/pT} / (q/p_{T})").Log(false).Min(0.01).Max(0.18).Fixed(true);
+
+    CanvasOptions copt_err_2D_EtaPhi_CR = CanvasOptions().OtherLabelStepY(0.03).OtherLabelStartY(-0.1).LegendStartY(-0.01).LegendEndY(-0.2).RightMargin(0.2);
+    copt_err_2D_EtaPhi_CR.ZAxis.modify().Title("Ratio q<0 / q>0").Log(false).Min(0.6).Max(1.4).Fixed(true);
+
     //////////////////////////////////////////////
     /// Define the binnings of the histograms to be drawn. 
     /// Make sure to reserve sufficient granularity when running RMS evaluations! 
@@ -819,18 +267,11 @@ int main(){
     TH2D href_pull_2D_PhiMP4("check2DpterrPhiMP4","bla;#phi mod. #pi/4;pull in q/p ",300,0,pi_over4,1000,-5.,5.); 
     href_pull_2D_PhiMP4.Sumw2();
 
+    TProfile2D href_prof2D_cov_etaphi("href_prof2D_cov_etaphi","bla;#eta;#phi;#sigma(q/p) / (q/p) ",800,-2.5,2.5,2000,-3.1415926, 3.1415926); 
+    href_pull_2D_PhiMP4.Sumw2();
 
-    // TH2D href_momres_2D_Pt("href_momres_2D_Pt","bla;p_{T} [GeV];pull width on q/p",nptbins,&(ptbins[0]),400,-1,1); 
-    // href_momres_2D_Pt.Sumw2();
-
-    // TH2D href_momres_2D_Eta("href_momres_2D_Eta","bla;|#eta|;pull width on q/p",200,0,2.5,400,-1,1); 
-    // href_momres_2D_Eta.Sumw2();
-
-    // TH2D href_momres_2D_Phi("href_momres_2D_Phi","bla;#phi;pull width on q/p",200,-3.15,3.15,400,-1,1); 
-    // href_momres_2D_Phi.Sumw2();
-
-    // TH2D href_momres_2D_PhiMP4("href_momres_2D_PhiMP4","bla;#phi mod. #pi/4;pull width on q/p",200,0,pi_over4,400,-1,1); 
-    // href_momres_2D_PhiMP4.Sumw2();
+    // TProfile2D href_prof2D_cov_etaphi("href_prof2D_cov_etaphi","bla;#eta;#phi;#sigma(q/p) / (q/p) ",12,-2.5,2.5,12,-3.1415926, 3.1415926); 
+    // href_pull_2D_PhiMP4.Sumw2();
 
     TH2D href_residual_2D_PhiMP4("href_residual_2D_PhiMP4","bla;#phi mod. #pi/4;Residual",200,0,pi_over4,1400,-0.7,0.7); 
     href_residual_2D_PhiMP4.Sumw2();
@@ -875,533 +316,533 @@ int main(){
     ///////////////////////////////////////////////////////////////////////////////
 
     /// Set up a multi page PDF output file to store everything 
-    auto mpc = PlotUtils::startMultiPagePdfFile("MCPMomentumChecks"); 
+    auto mpc = PlotUtils::startMultiPagePdfFile("MCPMomentumChecks_"+samplePrefix); 
 
     /// Loop over the eta-pt regions and book histograms 
-    for (auto & region : regions){
+    // for (auto & region : regions){
 
-        /// One selection per leg - needed because the ntuple format is a bit inconvenient... 
-        Selection <MuonMomentumCalibrationTreeExtended> sel_pos =  getPtWindow_Pos(region.ptMin,region.ptMax) && getAbsEtaWindow_Pos(region.etaMin, region.etaMax);  
-        Selection <MuonMomentumCalibrationTreeExtended> sel_neg =  getPtWindow_Neg(region.ptMin,region.ptMax) && getAbsEtaWindow_Neg(region.etaMin, region.etaMax);  
+    //     /// One selection per leg - needed because the ntuple format is a bit inconvenient... 
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_pos =  getPtWindow_Pos(region.ptMin,region.ptMax) && getAbsEtaWindow_Pos(region.etaMin, region.etaMax);  
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_neg =  getPtWindow_Neg(region.ptMin,region.ptMax) && getAbsEtaWindow_Neg(region.etaMin, region.etaMax);  
 
-        /// Book 1D plots of the momentum error for each track. 
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        LinearCombination<TH1D>(  
-                            RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D, MCP, sel_pos,
-                                fillMomErrorRel_ID_1D_Pos
-                            }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D, MCP, sel_neg,
-                                fillMomErrorRel_ID_1D_Neg
-                            },1),
-                    pf_ID_filled},
-                    Plot<TH1D>{
-                        LinearCombination<TH1D>(  
-                            RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D, MCP, sel_pos,
-                                fillMomErrorRel_ME_1D_Pos
-                            }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D, MCP, sel_neg,
-                                fillMomErrorRel_ME_1D_Neg
-                            },1),
-                    pf_ME_filled},
-                    Plot<TH1D>{
-                        LinearCombination<TH1D>(  
-                            RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D, MCP, sel_pos,
-                                fillMomErrorRel_CB_1D_Pos
-                            }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D, MCP, sel_neg,
-                                fillMomErrorRel_CB_1D_Neg
-                            },1),
-                    pf_CB_filled},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_"+region.title,mpc, copt_err_1D
-            }
-        );
+    //     /// Book 1D plots of the momentum error for each track. 
+    //     do1D.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     LinearCombination<TH1D>(  
+    //                         RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D, MCP, sel_pos,
+    //                             fillMomErrorRel_ID_1D_Pos
+    //                         }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D, MCP, sel_neg,
+    //                             fillMomErrorRel_ID_1D_Neg
+    //                         },1),
+    //                 pf_ID_filled},
+    //                 Plot<TH1D>{
+    //                     LinearCombination<TH1D>(  
+    //                         RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D, MCP, sel_pos,
+    //                             fillMomErrorRel_ME_1D_Pos
+    //                         }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D, MCP, sel_neg,
+    //                             fillMomErrorRel_ME_1D_Neg
+    //                         },1),
+    //                 pf_ME_filled},
+    //                 Plot<TH1D>{
+    //                     LinearCombination<TH1D>(  
+    //                         RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D, MCP, sel_pos,
+    //                             fillMomErrorRel_CB_1D_Pos
+    //                         }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D, MCP, sel_neg,
+    //                             fillMomErrorRel_CB_1D_Neg
+    //                         },1),
+    //                 pf_CB_filled},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_"+region.title,mpc, copt_err_1D
+    //         }
+    //     );
         
-        Selection <MuonMomentumCalibrationTreeExtended> sel_pos_aux1 = sel_pos && sel_phiAuxTest_Pos && sel_phiAuxTestB_Pos; 
-        Selection <MuonMomentumCalibrationTreeExtended> sel_neg_aux1 = sel_neg && sel_phiAuxTest_Neg && sel_phiAuxTestB_Neg; 
-        Selection <MuonMomentumCalibrationTreeExtended> sel_pos_aux2 = sel_pos && sel_phiAuxTest_Pos && !sel_phiAuxTestB_Pos; 
-        Selection <MuonMomentumCalibrationTreeExtended> sel_neg_aux2 = sel_neg && sel_phiAuxTest_Neg && !sel_phiAuxTestB_Neg; 
-        Selection <MuonMomentumCalibrationTreeExtended> sel_pos_aux3 = sel_pos && !sel_phiAuxTest_Pos; 
-        Selection <MuonMomentumCalibrationTreeExtended> sel_neg_aux3 = sel_neg && !sel_phiAuxTest_Neg; 
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_pos_aux1 = sel_pos && sel_phiAuxTest_Pos && sel_phiAuxTestB_Pos; 
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_neg_aux1 = sel_neg && sel_phiAuxTest_Neg && sel_phiAuxTestB_Neg; 
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_pos_aux2 = sel_pos && sel_phiAuxTest_Pos && !sel_phiAuxTestB_Pos; 
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_neg_aux2 = sel_neg && sel_phiAuxTest_Neg && !sel_phiAuxTestB_Neg; 
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_pos_aux3 = sel_pos && !sel_phiAuxTest_Pos; 
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_neg_aux3 = sel_neg && !sel_phiAuxTest_Neg; 
 
-        /// Book plots showing the composition of the CB error distribution in terms of chamber-level phi-regions
-        do1DRatio.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        LinearCombination<TH1D>(  
-                            RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D_cbOnly, MCP, sel_pos,
-                                fillMomErrorRel_CB_1D_Pos
-                            }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D_cbOnly, MCP, sel_neg,
-                                fillMomErrorRel_CB_1D_Neg
-                            },1),
-                    pf_CB_auxAll},
-                    Plot<TH1D>{
-                        LinearCombination<TH1D>(  
-                            RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D_cbOnly, MCP,  sel_pos_aux1,
-                                fillMomErrorRel_CB_1D_Pos
-                            }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D_cbOnly, MCP,  sel_neg_aux1,
-                                fillMomErrorRel_CB_1D_Neg
-                            },1),
-                    pf_CB_aux1},
-                    Plot<TH1D>{
-                        LinearCombination<TH1D>(  
-                            RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D_cbOnly, MCP,  sel_pos_aux2,
-                                fillMomErrorRel_CB_1D_Pos
-                            }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D_cbOnly, MCP,  sel_neg_aux2,
-                                fillMomErrorRel_CB_1D_Neg
-                            },1),
-                    pf_CB_aux2},
-                    Plot<TH1D>{
-                        LinearCombination<TH1D>(  
-                            RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D_cbOnly, MCP,  sel_pos_aux3,
-                                fillMomErrorRel_CB_1D_Pos
-                            }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
-                                &href_pull_1D_cbOnly, MCP,  sel_neg_aux3,
-                                fillMomErrorRel_CB_1D_Neg
-                            },1),
-                    pf_CB_aux3},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_PhiSplitCheck"+region.title,mpc, copt_1Dcomp_ratio
-            }
-        );
+    //     /// Book plots showing the composition of the CB error distribution in terms of chamber-level phi-regions
+    //     do1DRatio.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     LinearCombination<TH1D>(  
+    //                         RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D_cbOnly, MCP, sel_pos,
+    //                             fillMomErrorRel_CB_1D_Pos
+    //                         }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D_cbOnly, MCP, sel_neg,
+    //                             fillMomErrorRel_CB_1D_Neg
+    //                         },1),
+    //                 pf_CB_auxAll},
+    //                 Plot<TH1D>{
+    //                     LinearCombination<TH1D>(  
+    //                         RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D_cbOnly, MCP,  sel_pos_aux1,
+    //                             fillMomErrorRel_CB_1D_Pos
+    //                         }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D_cbOnly, MCP,  sel_neg_aux1,
+    //                             fillMomErrorRel_CB_1D_Neg
+    //                         },1),
+    //                 pf_CB_aux1},
+    //                 Plot<TH1D>{
+    //                     LinearCombination<TH1D>(  
+    //                         RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D_cbOnly, MCP,  sel_pos_aux2,
+    //                             fillMomErrorRel_CB_1D_Pos
+    //                         }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D_cbOnly, MCP,  sel_neg_aux2,
+    //                             fillMomErrorRel_CB_1D_Neg
+    //                         },1),
+    //                 pf_CB_aux2},
+    //                 Plot<TH1D>{
+    //                     LinearCombination<TH1D>(  
+    //                         RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D_cbOnly, MCP,  sel_pos_aux3,
+    //                             fillMomErrorRel_CB_1D_Pos
+    //                         }, RunHistoFiller<TH1D, MuonMomentumCalibrationTreeExtended>{ 
+    //                             &href_pull_1D_cbOnly, MCP,  sel_neg_aux3,
+    //                             fillMomErrorRel_CB_1D_Neg
+    //                         },1),
+    //                 pf_CB_aux3},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_"+samplePrefix+"_PhiSplitCheck"+region.title,mpc, copt_1Dcomp_ratio
+    //         }
+    //     );
 
 
 
-        /// Book plots with the iterative RMS based resolution versus chamber-level phi
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhiMP4_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhiMP4_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhiMP4_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhiMP4_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhiMP4_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhiMP4_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_ResoVsPhiMP4"+region.title,mpc, copt_reso_1D
-            }
-        );
-        /// Book plots with the iterative RMS based resolution versus phi
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Phi, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhi_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Phi, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhi_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Phi, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhi_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Phi, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhi_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Phi, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhi_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Phi, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhi_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_ResoVsPhi"+region.title,mpc, copt_reso_1D
-            }
-        );
+    //     /// Book plots with the iterative RMS based resolution versus chamber-level phi
+    //     do1D.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhiMP4_ID_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhiMP4_ID_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ID},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhiMP4_ME_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhiMP4_ME_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ME},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhiMP4_CB_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhiMP4_CB_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_ResoVsPhiMP4"+region.title,mpc, copt_reso_1D
+    //         }
+    //     );
+    //     /// Book plots with the iterative RMS based resolution versus phi
+    //     do1D.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Phi, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhi_ID_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Phi, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhi_ID_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ID},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Phi, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhi_ME_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Phi, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhi_ME_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ME},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Phi, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhi_CB_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Phi, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhi_CB_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_ResoVsPhi"+region.title,mpc, copt_reso_1D
+    //         }
+    //     );
 
-        /// Book plots with the iterative RMS based pull width versus phi
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Phi, MCP, sel_pos,
-                                    fillMomPullRel_vsPhi_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Phi, MCP, sel_neg,
-                                    fillMomPullRel_vsPhi_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Phi, MCP, sel_pos,
-                                    fillMomPullRel_vsPhi_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Phi, MCP, sel_neg,
-                                    fillMomPullRel_vsPhi_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Phi, MCP, sel_pos,
-                                    fillMomPullRel_vsPhi_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Phi, MCP, sel_neg,
-                                    fillMomPullRel_vsPhi_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_PullWidthVsPhi"+region.title,mpc, copt_pullWidth_1D
-            }
-        );
+    //     /// Book plots with the iterative RMS based pull width versus phi
+    //     do1D.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Phi, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPhi_ID_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Phi, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPhi_ID_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ID},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Phi, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPhi_ME_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Phi, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPhi_ME_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ME},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Phi, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPhi_CB_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Phi, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPhi_CB_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_PullWidthVsPhi"+region.title,mpc, copt_pullWidth_1D
+    //         }
+    //     );
 
-        /// Book plots with the iterative RMS based pull width versus chamber-level phi
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomPullRel_vsPhiMP4_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomPullRel_vsPhiMP4_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomPullRel_vsPhiMP4_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomPullRel_vsPhiMP4_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomPullRel_vsPhiMP4_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomPullRel_vsPhiMP4_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_PullWidthVsPhiMP4"+region.title,mpc, copt_pullWidth_1D
-            }
-        );
+    //     /// Book plots with the iterative RMS based pull width versus chamber-level phi
+    //     do1D.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPhiMP4_ID_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPhiMP4_ID_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ID},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPhiMP4_ME_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPhiMP4_ME_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ME},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPhiMP4_CB_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPhiMP4_CB_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_PullWidthVsPhiMP4"+region.title,mpc, copt_pullWidth_1D
+    //         }
+    //     );
         
-        /// Book plots with comparing the mean q/p covariance error to the actual resolution for the ID track
-        do1DRatio.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TProfile>(
-                            LinearCombination<TProfile>(  
-                                RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_TP_PhiMP4, MCP, sel_pos,
-                                    fillMomErrorRel_ID_vsPhiMP4_Prof_Pos
-                                }, RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_TP_PhiMP4, MCP, sel_neg,
-                                    fillMomErrorRel_ID_vsPhiMP4_Prof_Neg
-                                },1), 
-                            ResoUtils::profToTH1), pf_ID_MeanCov},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhiMP4_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhiMP4_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID_Meas},
-                },
-                {"Z#rightarrow #mu#mu", "ID Tracks", region.label}, "CheckMuonPt_ID_ResoExpVsObs_VsPhiMP4"+region.title,mpc, copt_1Dcomp_res
-            }
-        );
-        /// Book plots with comparing the mean q/p covariance error to the actual resolution for the ME track
-        do1DRatio.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TProfile>(
-                            LinearCombination<TProfile>(  
-                                RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_TP_PhiMP4, MCP, sel_pos,
-                                    fillMomErrorRel_ME_vsPhiMP4_Prof_Pos
-                                }, RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_TP_PhiMP4, MCP, sel_neg,
-                                    fillMomErrorRel_ME_vsPhiMP4_Prof_Neg
-                                },1), 
-                            ResoUtils::profToTH1), pf_ME_MeanCov},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhiMP4_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhiMP4_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME_Meas},
-                },
-                {"Z#rightarrow #mu#mu", "ME Tracks", region.label}, "CheckMuonPt_ME_ResoExpVsObs_VsPhiMP4"+region.title,mpc, copt_1Dcomp_res
-            }
-        );
-        /// Book plots with comparing the mean q/p covariance error to the actual resolution for the CB track
-        do1DRatio.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TProfile>(
-                            LinearCombination<TProfile>(  
-                                RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_TP_PhiMP4, MCP, sel_pos,
-                                    fillMomErrorRel_CB_vsPhiMP4_Prof_Pos
-                                }, RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_TP_PhiMP4, MCP, sel_neg,
-                                    fillMomErrorRel_CB_vsPhiMP4_Prof_Neg
-                                },1), 
-                            ResoUtils::profToTH1), pf_CB_MeanCov},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomResidualRel_vsPhiMP4_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomResidualRel_vsPhiMP4_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB_Meas},
-                },
-                {"Z#rightarrow #mu#mu", "CB Tracks", region.label}, "CheckMuonPt_CB_ResoExpVsObs_VsPhiMP4"+region.title,mpc, copt_1Dcomp_res
-            }
-        );
+    //     /// Book plots with comparing the mean q/p covariance error to the actual resolution for the ID track
+    //     do1DRatio.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TProfile>(
+    //                         LinearCombination<TProfile>(  
+    //                             RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_TP_PhiMP4, MCP, sel_pos,
+    //                                 fillMomErrorRel_ID_vsPhiMP4_Prof_Pos
+    //                             }, RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_TP_PhiMP4, MCP, sel_neg,
+    //                                 fillMomErrorRel_ID_vsPhiMP4_Prof_Neg
+    //                             },1), 
+    //                         ResoUtils::profToTH1), pf_ID_MeanCov},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhiMP4_ID_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhiMP4_ID_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ID_Meas},
+    //             },
+    //             {sampleLabel, "ID Tracks", region.label}, "CheckMuonPt_"+samplePrefix+"_ID_ResoExpVsObs_VsPhiMP4"+region.title,mpc, copt_1Dcomp_res
+    //         }
+    //     );
+    //     /// Book plots with comparing the mean q/p covariance error to the actual resolution for the ME track
+    //     do1DRatio.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TProfile>(
+    //                         LinearCombination<TProfile>(  
+    //                             RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_TP_PhiMP4, MCP, sel_pos,
+    //                                 fillMomErrorRel_ME_vsPhiMP4_Prof_Pos
+    //                             }, RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_TP_PhiMP4, MCP, sel_neg,
+    //                                 fillMomErrorRel_ME_vsPhiMP4_Prof_Neg
+    //                             },1), 
+    //                         ResoUtils::profToTH1), pf_ME_MeanCov},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhiMP4_ME_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhiMP4_ME_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ME_Meas},
+    //             },
+    //             {sampleLabel, "ME Tracks", region.label}, "CheckMuonPt_"+samplePrefix+"_ME_ResoExpVsObs_VsPhiMP4"+region.title,mpc, copt_1Dcomp_res
+    //         }
+    //     );
+    //     /// Book plots with comparing the mean q/p covariance error to the actual resolution for the CB track
+    //     do1DRatio.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TProfile>(
+    //                         LinearCombination<TProfile>(  
+    //                             RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_TP_PhiMP4, MCP, sel_pos,
+    //                                 fillMomErrorRel_CB_vsPhiMP4_Prof_Pos
+    //                             }, RunHistoFiller<TProfile, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_TP_PhiMP4, MCP, sel_neg,
+    //                                 fillMomErrorRel_CB_vsPhiMP4_Prof_Neg
+    //                             },1), 
+    //                         ResoUtils::profToTH1), pf_CB_MeanCov},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPhiMP4_CB_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPhiMP4_CB_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_CB_Meas},
+    //             },
+    //             {sampleLabel, "CB Tracks", region.label}, "CheckMuonPt_"+samplePrefix+"_CB_ResoExpVsObs_VsPhiMP4"+region.title,mpc, copt_1Dcomp_res
+    //         }
+    //     );
 
-        /// Book 2D plots showing the actual distribution of the momentum error in bins of phi 
-        do2D_Phi.push_back(
-            PlotContent<TH2D>{
-                {
-                    Plot<TH2D>{
-                        GenericPostProcessing<TH2D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_pos,
-                                    fillMomErrorRel_ID_vsPhi_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_neg,
-                                    fillMomErrorRel_ID_vsPhi_2D_Neg
-                                },1),normaliseInBin),
-                    pf_ID},
-                    Plot<TH2D>{
-                        GenericPostProcessing<TH2D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_pos,
-                                    fillMomErrorRel_ME_vsPhi_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_neg,
-                                    fillMomErrorRel_ME_vsPhi_2D_Neg
-                                },1),normaliseInBin),
-                    pf_ME},
-                    // Plot<TH2D>{
-                    //     GenericPostProcessing<TH2D,TH2D>(
-                    //         LinearCombination<TH2D>(  
-                    //             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                    //                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
-                    //                 fillMomErrorRel_MS_vsPhi_2D_Pos
-                    //             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                    //                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
-                    //                 fillMomErrorRel_MS_vsPhi_2D_Neg
-                    //             },1),normaliseInBin),
-                    // pf_MS},
-                    Plot<TH2D>{
-                        GenericPostProcessing<TH2D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_pos,
-                                    fillMomErrorRel_CB_vsPhi_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_neg,
-                                    fillMomErrorRel_CB_vsPhi_2D_Neg
-                                },1),normaliseInBin),
-                    pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_Phi2D_"+region.title,mpc, copt_err_2D_Eta
-            }
-        );
+    //     /// Book 2D plots showing the actual distribution of the momentum error in bins of phi 
+    //     do2D_Phi.push_back(
+    //         PlotContent<TH2D>{
+    //             {
+    //                 Plot<TH2D>{
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
+    //                                 fillMomErrorRel_ID_vsPhi_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
+    //                                 fillMomErrorRel_ID_vsPhi_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_ID},
+    //                 Plot<TH2D>{
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
+    //                                 fillMomErrorRel_ME_vsPhi_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
+    //                                 fillMomErrorRel_ME_vsPhi_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_ME},
+    //                 // Plot<TH2D>{
+    //                 //     GenericPostProcessing<TH2D,TH2D>(
+    //                 //         LinearCombination<TH2D>(  
+    //                 //             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                 //                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
+    //                 //                 fillMomErrorRel_MS_vsPhi_2D_Pos
+    //                 //             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                 //                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
+    //                 //                 fillMomErrorRel_MS_vsPhi_2D_Neg
+    //                 //             },1),normaliseInBin),
+    //                 // pf_MS},
+    //                 Plot<TH2D>{
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
+    //                                 fillMomErrorRel_CB_vsPhi_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
+    //                                 fillMomErrorRel_CB_vsPhi_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_Phi2D_"+region.title,mpc, copt_err_2D_Eta
+    //         }
+    //     );
 
-        /// Book 2D plots showing the actual distribution of the momentum error in bins of phi 
-        do2D_Phi.push_back(
-            PlotContent<TH2D>{
-                {
-                    Plot<TH2D>{
-                        GenericPostProcessing<TH2D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_pos,
-                                    fillMomErrorRel_ID_vsPhi_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_neg,
-                                    fillMomErrorRel_ID_vsPhi_2D_Neg
-                                },1),normaliseInBin),
-                    pf_ID},
-                    Plot<TH2D>{
-                        GenericPostProcessing<TH2D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_pos,
-                                    fillMomErrorRel_ME_vsPhi_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_neg,
-                                    fillMomErrorRel_ME_vsPhi_2D_Neg
-                                },1),normaliseInBin),
-                    pf_ME},
-                    // Plot<TH2D>{
-                    //     GenericPostProcessing<TH2D,TH2D>(
-                    //         LinearCombination<TH2D>(  
-                    //             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                    //                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
-                    //                 fillMomErrorRel_MS_vsPhi_2D_Pos
-                    //             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                    //                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
-                    //                 fillMomErrorRel_MS_vsPhi_2D_Neg
-                    //             },1),normaliseInBin),
-                    // pf_MS},
-                    Plot<TH2D>{
-                        GenericPostProcessing<TH2D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_pos,
-                                    fillMomErrorRel_CB_vsPhi_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Phi, MCP, sel_neg,
-                                    fillMomErrorRel_CB_vsPhi_2D_Neg
-                                },1),normaliseInBin),
-                    pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_Phi2D_"+region.title,mpc, copt_err_2D_Eta
-            }
-        );
+    //     /// Book 2D plots showing the actual distribution of the momentum error in bins of phi 
+    //     do2D_Phi.push_back(
+    //         PlotContent<TH2D>{
+    //             {
+    //                 Plot<TH2D>{
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
+    //                                 fillMomErrorRel_ID_vsPhi_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
+    //                                 fillMomErrorRel_ID_vsPhi_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_ID},
+    //                 Plot<TH2D>{
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
+    //                                 fillMomErrorRel_ME_vsPhi_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
+    //                                 fillMomErrorRel_ME_vsPhi_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_ME},
+    //                 // Plot<TH2D>{
+    //                 //     GenericPostProcessing<TH2D,TH2D>(
+    //                 //         LinearCombination<TH2D>(  
+    //                 //             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                 //                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
+    //                 //                 fillMomErrorRel_MS_vsPhi_2D_Pos
+    //                 //             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                 //                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
+    //                 //                 fillMomErrorRel_MS_vsPhi_2D_Neg
+    //                 //             },1),normaliseInBin),
+    //                 // pf_MS},
+    //                 Plot<TH2D>{
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_pos,
+    //                                 fillMomErrorRel_CB_vsPhi_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_Phi, MCP, sel_neg,
+    //                                 fillMomErrorRel_CB_vsPhi_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_Phi2D_"+region.title,mpc, copt_err_2D_Eta
+    //         }
+    //     );
         
-        /// Book 2D plots showing the actual distribution of the momentum error in bins of chamber-level phi 
-        do2D_Phi.push_back(
-            PlotContent<TH2D>{
-                {
-                    Plot<TH2D>{
+    //     /// Book 2D plots showing the actual distribution of the momentum error in bins of chamber-level phi 
+    //     do2D_Phi.push_back(
+    //         PlotContent<TH2D>{
+    //             {
+    //                 Plot<TH2D>{
                         
-                        GenericPostProcessing<TH2D,TH2D>(
-                                LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomErrorRel_ID_vsPhiMP4_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomErrorRel_ID_vsPhiMP4_2D_Neg
-                                },1),normaliseInBin),
-                    pf_ID},
-                    Plot<TH2D>{
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                             LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomErrorRel_ID_vsPhiMP4_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomErrorRel_ID_vsPhiMP4_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_ID},
+    //                 Plot<TH2D>{
                         
-                        GenericPostProcessing<TH2D,TH2D>(
-                                LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomErrorRel_ME_vsPhiMP4_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomErrorRel_ME_vsPhiMP4_2D_Neg
-                                },1),normaliseInBin),
-                    pf_ME},
-                    // Plot<TH2D>{
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                             LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomErrorRel_ME_vsPhiMP4_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomErrorRel_ME_vsPhiMP4_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_ME},
+    //                 // Plot<TH2D>{
                         
-                    //     GenericPostProcessing<TH2D,TH2D>(
-                    //             LinearCombination<TH2D>(  
-                    //             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                    //                 &href_sigmaRel_2D_PhiMP4, MCP, sel_pos,
-                    //                 fillMomErrorRel_MS_vsPhiMP4_2D_Pos
-                    //             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                    //                 &href_sigmaRel_2D_PhiMP4, MCP, sel_neg,
-                    //                 fillMomErrorRel_MS_vsPhiMP4_2D_Neg
-                    //             },1),normaliseInBin),
-                    // pf_MS},
-                    Plot<TH2D>{
+    //                 //     GenericPostProcessing<TH2D,TH2D>(
+    //                 //             LinearCombination<TH2D>(  
+    //                 //             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                 //                 &href_sigmaRel_2D_PhiMP4, MCP, sel_pos,
+    //                 //                 fillMomErrorRel_MS_vsPhiMP4_2D_Pos
+    //                 //             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                 //                 &href_sigmaRel_2D_PhiMP4, MCP, sel_neg,
+    //                 //                 fillMomErrorRel_MS_vsPhiMP4_2D_Neg
+    //                 //             },1),normaliseInBin),
+    //                 // pf_MS},
+    //                 Plot<TH2D>{
                         
-                        GenericPostProcessing<TH2D,TH2D>(
-                                LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_PhiMP4, MCP, sel_pos,
-                                    fillMomErrorRel_CB_vsPhiMP4_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_PhiMP4, MCP, sel_neg,
-                                    fillMomErrorRel_CB_vsPhiMP4_2D_Neg
-                                },1),normaliseInBin),
-                    pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_PhiMP4_2D_"+region.title,mpc, copt_err_2D_Eta
-            }
-        );
-    }
+    //                     GenericPostProcessing<TH2D,TH2D>(
+    //                             LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_PhiMP4, MCP, sel_pos,
+    //                                 fillMomErrorRel_CB_vsPhiMP4_2D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_sigmaRel_2D_PhiMP4, MCP, sel_neg,
+    //                                 fillMomErrorRel_CB_vsPhiMP4_2D_Neg
+    //                             },1),normaliseInBin),
+    //                 pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_PhiMP4_2D_"+region.title,mpc, copt_err_2D_Eta
+    //         }
+    //     );
+    // }
     
 
     /// Loop over our pt bins and book plots versus eta 
@@ -1412,88 +853,134 @@ int main(){
         Selection <MuonMomentumCalibrationTreeExtended> sel_pos =  getPtWindow_Pos(region.ptMin,region.ptMax);  
         Selection <MuonMomentumCalibrationTreeExtended> sel_neg =  getPtWindow_Neg(region.ptMin,region.ptMax);  
         
-        /// Book plots with the iterative RMS based pull width versus eta
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Eta, MCP, sel_pos,
-                                    fillMomPullRel_vsEta_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Eta, MCP, sel_neg,
-                                    fillMomPullRel_vsEta_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Eta, MCP, sel_pos,
-                                    fillMomPullRel_vsEta_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Eta, MCP, sel_neg,
-                                    fillMomPullRel_vsEta_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Eta, MCP, sel_pos,
-                                    fillMomPullRel_vsEta_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Eta, MCP, sel_neg,
-                                    fillMomPullRel_vsEta_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_PullWidthVsEta"+region.title,mpc, copt_pullWidth_1D
-            }
-        );
-        /// Book plots with the iterative RMS based resolution versus eta
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Eta, MCP, sel_pos,
-                                    fillMomResidualRel_vsEta_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Eta, MCP, sel_neg,
-                                    fillMomResidualRel_vsEta_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Eta, MCP, sel_pos,
-                                    fillMomResidualRel_vsEta_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Eta, MCP, sel_neg,
-                                    fillMomResidualRel_vsEta_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Eta, MCP, sel_pos,
-                                    fillMomResidualRel_vsEta_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Eta, MCP, sel_neg,
-                                    fillMomResidualRel_vsEta_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_ResoVsEta"+region.title,mpc, copt_reso_1D
-            }
-        );
+        // /// Book plots with the iterative RMS based pull width versus eta
+        // do1D.push_back(
+        //     PlotContent<TH1D>{
+        //         {
+        //             Plot<TH1D>{
+        //                 GenericPostProcessing<TH1D,TH2D>(
+        //                     LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_pull_2D_Eta, MCP, sel_pos,
+        //                             fillMomPullRel_vsEta_ID_1D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_pull_2D_Eta, MCP, sel_neg,
+        //                             fillMomPullRel_vsEta_ID_1D_Neg
+        //                         },1), 
+        //                     ResoUtils::getIterRMS), pf_ID},
+        //             Plot<TH1D>{
+        //                 GenericPostProcessing<TH1D,TH2D>(
+        //                     LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_pull_2D_Eta, MCP, sel_pos,
+        //                             fillMomPullRel_vsEta_ME_1D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_pull_2D_Eta, MCP, sel_neg,
+        //                             fillMomPullRel_vsEta_ME_1D_Neg
+        //                         },1), 
+        //                     ResoUtils::getIterRMS), pf_ME},
+        //             Plot<TH1D>{
+        //                 GenericPostProcessing<TH1D,TH2D>(
+        //                     LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_pull_2D_Eta, MCP, sel_pos,
+        //                             fillMomPullRel_vsEta_CB_1D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_pull_2D_Eta, MCP, sel_neg,
+        //                             fillMomPullRel_vsEta_CB_1D_Neg
+        //                         },1), 
+        //                     ResoUtils::getIterRMS), pf_CB},
+        //         },
+        //         {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_PullWidthVsEta"+region.title,mpc, copt_pullWidth_1D
+        //     }
+        // );
+        // /// Book plots with the iterative RMS based resolution versus eta
+        // do1D.push_back(
+        //     PlotContent<TH1D>{
+        //         {
+        //             Plot<TH1D>{
+        //                 GenericPostProcessing<TH1D,TH2D>(
+        //                     LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_residual_2D_Eta, MCP, sel_pos,
+        //                             fillMomResidualRel_vsEta_ID_1D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_residual_2D_Eta, MCP, sel_neg,
+        //                             fillMomResidualRel_vsEta_ID_1D_Neg
+        //                         },1), 
+        //                     ResoUtils::getIterRMS), pf_ID},
+        //             Plot<TH1D>{
+        //                 GenericPostProcessing<TH1D,TH2D>(
+        //                     LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_residual_2D_Eta, MCP, sel_pos,
+        //                             fillMomResidualRel_vsEta_ME_1D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_residual_2D_Eta, MCP, sel_neg,
+        //                             fillMomResidualRel_vsEta_ME_1D_Neg
+        //                         },1), 
+        //                     ResoUtils::getIterRMS), pf_ME},
+        //             Plot<TH1D>{
+        //                 GenericPostProcessing<TH1D,TH2D>(
+        //                     LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_residual_2D_Eta, MCP, sel_pos,
+        //                             fillMomResidualRel_vsEta_CB_1D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_residual_2D_Eta, MCP, sel_neg,
+        //                             fillMomResidualRel_vsEta_CB_1D_Neg
+        //                         },1), 
+        //                     ResoUtils::getIterRMS), pf_CB},
+        //         },
+        //         {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_ResoVsEta"+region.title,mpc, copt_reso_1D
+        //     }
+        // );
+
+
+        // /// Book 2D plots showing the actual distribution of the momentum error in bins of eta
+        // do2D_Eta.push_back(
+        //     PlotContent<TH2D>{  
+        //         {
+        //             Plot<TH2D>{
+                        
+        //                     GenericPostProcessing<TH2D,TH2D>(
+        //                             LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_sigmaRel_2D_Eta, MCP,sel_pos,
+        //                             fillMomErrorRel_ID_vsEta_2D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_sigmaRel_2D_Eta, MCP, sel_neg,
+        //                             fillMomErrorRel_ID_vsEta_2D_Neg
+        //                     },1),normaliseInBin),
+        //             pf_ID},
+        //             Plot<TH2D>{
+                        
+        //                     GenericPostProcessing<TH2D,TH2D>(
+        //                             LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_sigmaRel_2D_Eta, MCP,sel_pos,
+        //                             fillMomErrorRel_ME_vsEta_2D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_sigmaRel_2D_Eta, MCP, sel_neg,
+        //                             fillMomErrorRel_ME_vsEta_2D_Neg
+        //                     },1),normaliseInBin),
+        //             pf_ME},
+        //             Plot<TH2D>{
+                        
+        //                     GenericPostProcessing<TH2D,TH2D>(
+        //                             LinearCombination<TH2D>(  
+        //                         RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_sigmaRel_2D_Eta, MCP,sel_pos,
+        //                             fillMomErrorRel_CB_vsEta_2D_Pos
+        //                         }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+        //                             &href_sigmaRel_2D_Eta, MCP, sel_neg,
+        //                             fillMomErrorRel_CB_vsEta_2D_Neg
+        //                     },1),normaliseInBin),
+        //             pf_CB},
+        //         },
+        //         {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_vsEta_"+region.title,mpc, copt_err_2D_Eta
+        //     }
+        // );
 
 
         /// Book 2D plots showing the actual distribution of the momentum error in bins of eta
@@ -1502,138 +989,241 @@ int main(){
                 {
                     Plot<TH2D>{
                         
-                            GenericPostProcessing<TH2D,TH2D>(
-                                    LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Eta, MCP,sel_pos,
-                                    fillMomErrorRel_ID_vsEta_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Eta, MCP, sel_neg,
-                                    fillMomErrorRel_ID_vsEta_2D_Neg
-                            },1),normaliseInBin),
-                    pf_ID},
-                    Plot<TH2D>{
-                        
-                            GenericPostProcessing<TH2D,TH2D>(
-                                    LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Eta, MCP,sel_pos,
-                                    fillMomErrorRel_ME_vsEta_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Eta, MCP, sel_neg,
-                                    fillMomErrorRel_ME_vsEta_2D_Neg
-                            },1),normaliseInBin),
+                            GenericPostProcessing<TH2D,TProfile2D>(
+                                    LinearCombination<TProfile2D>(  
+                                RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                    &href_prof2D_cov_etaphi, MCP,sel_pos,
+                                    fillMomErrorRel_ME_vsEtaPhi2D_Pos
+                                }, RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                    &href_prof2D_cov_etaphi, MCP, sel_neg,
+                                    fillMomErrorRel_ME_vsEtaPhi2D_Neg
+                            },1),ProftoTH2D),
                     pf_ME},
-                    Plot<TH2D>{
-                        
-                            GenericPostProcessing<TH2D,TH2D>(
-                                    LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Eta, MCP,sel_pos,
-                                    fillMomErrorRel_CB_vsEta_2D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_sigmaRel_2D_Eta, MCP, sel_neg,
-                                    fillMomErrorRel_CB_vsEta_2D_Neg
-                            },1),normaliseInBin),
-                    pf_CB},
                 },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_vsEta_"+region.title,mpc, copt_err_2D_Eta
+                {sampleLabel, region.label}, "CheckMuonCov_"+samplePrefix+"_vsEtaPhi2D_"+region.title,mpc, copt_err_2D_EtaPhi
             }
         );
+        do2D_Eta.push_back(
+            PlotContent<TH2D>{  
+                {
+                    Plot<TH2D>{
+                            GenericPostProcessing<TH2D,TProfile2D>(
+                                RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                    &href_prof2D_cov_etaphi, MCP, sel_neg,
+                                    fillMomErrorRel_ME_vsEtaPhi2D_Neg
+                            },ProftoTH2D),
+                    pf_ME},
+                },
+                {sampleLabel,"q < 0", region.label}, "CheckMuonCov_"+samplePrefix+"_vsEtaPhi2D_muMinus_"+region.title,mpc, copt_err_2D_EtaPhi
+            }
+        );
+        do2D_Eta.push_back(
+            PlotContent<TH2D>{  
+                {
+                    Plot<TH2D>{
+                            GenericPostProcessing<TH2D,TProfile2D>(
+                                RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                    &href_prof2D_cov_etaphi, MCP, sel_pos,
+                                    fillMomErrorRel_ME_vsEtaPhi2D_Pos
+                            },ProftoTH2D),
+                    pf_ME},
+                },
+                {sampleLabel,"q > 0", region.label}, "CheckMuonCov_"+samplePrefix+"_vsEtaPhi2D_muPlus_"+region.title,mpc, copt_err_2D_EtaPhi
+            }
+        );
+        do2D_Eta.push_back(
+            PlotContent<TH2D>{  
+                {
+                    Plot<TH2D>{
+                        GenericPostProcessing<TH2D,TH1>{
+                            CalculateRatio<TH2D>(
+                                GenericPostProcessing<TH2D,TProfile2D>(
+                                    RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                        &href_prof2D_cov_etaphi, MCP, sel_neg,
+                                        fillMomErrorRel_ME_vsEtaPhi2D_Neg
+                                },ProftoTH2D),
+                                GenericPostProcessing<TH2D,TProfile2D>(
+                                    RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                        &href_prof2D_cov_etaphi, MCP, sel_pos,
+                                        fillMomErrorRel_ME_vsEtaPhi2D_Pos
+                                },ProftoTH2D),PlotUtils::EfficiencyMode::defaultErrors
+                            ),[](std::shared_ptr<TH1> h1){return std::dynamic_pointer_cast<TH2D>(h1);}},
+                    pf_ME},
+                },
+                {sampleLabel,"Reso. Ratio q<0 / q>0", region.label}, "CheckMuonCov_"+samplePrefix+"_vsEtaPhi2D_ChargeRatio_"+region.title,mpc, copt_err_2D_EtaPhi_CR
+            }
+        );
+
+
+        /// and for the ID 
+
+        do2D_Eta.push_back(
+            PlotContent<TH2D>{  
+                {
+                    Plot<TH2D>{
+                        
+                            GenericPostProcessing<TH2D,TProfile2D>(
+                                    LinearCombination<TProfile2D>(  
+                                RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                    &href_prof2D_cov_etaphi, MCP,sel_pos,
+                                    fillMomErrorRel_ID_vsEtaPhi2D_Pos
+                                }, RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                    &href_prof2D_cov_etaphi, MCP, sel_neg,
+                                    fillMomErrorRel_ID_vsEtaPhi2D_Neg
+                            },1),ProftoTH2D),
+                    pf_ID},
+                },
+                {sampleLabel, region.label}, "CheckMuonCov_IDtrk_vsEtaPhi2D_"+region.title,mpc, copt_err_2D_EtaPhi
+            }
+        );
+        do2D_Eta.push_back(
+            PlotContent<TH2D>{  
+                {
+                    Plot<TH2D>{
+                            GenericPostProcessing<TH2D,TProfile2D>(
+                                RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                    &href_prof2D_cov_etaphi, MCP, sel_neg,
+                                    fillMomErrorRel_ID_vsEtaPhi2D_Neg
+                            },ProftoTH2D),
+                    pf_ID},
+                },
+                {sampleLabel,"q < 0", region.label}, "CheckMuonCov_IDtrk_vsEtaPhi2D_muMinus_"+region.title,mpc, copt_err_2D_EtaPhi
+            }
+        );
+        do2D_Eta.push_back(
+            PlotContent<TH2D>{  
+                {
+                    Plot<TH2D>{
+                            GenericPostProcessing<TH2D,TProfile2D>(
+                                RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                    &href_prof2D_cov_etaphi, MCP, sel_pos,
+                                    fillMomErrorRel_ID_vsEtaPhi2D_Pos
+                            },ProftoTH2D),
+                    pf_ID},
+                },
+                {sampleLabel,"q > 0", region.label}, "CheckMuonCov_IDtrk_vsEtaPhi2D_muPlus_"+region.title,mpc, copt_err_2D_EtaPhi
+            }
+        );
+        do2D_Eta.push_back(
+            PlotContent<TH2D>{  
+                {
+                    Plot<TH2D>{
+                        GenericPostProcessing<TH2D,TH1>{
+                            CalculateRatio<TH2D>(
+                                GenericPostProcessing<TH2D,TProfile2D>(
+                                    RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                        &href_prof2D_cov_etaphi, MCP, sel_neg,
+                                        fillMomErrorRel_ID_vsEtaPhi2D_Neg
+                                },ProftoTH2D),
+                                GenericPostProcessing<TH2D,TProfile2D>(
+                                    RunHistoFiller<TProfile2D, MuonMomentumCalibrationTreeExtended>{ 
+                                        &href_prof2D_cov_etaphi, MCP, sel_pos,
+                                        fillMomErrorRel_ID_vsEtaPhi2D_Pos
+                                },ProftoTH2D),PlotUtils::EfficiencyMode::defaultErrors
+                            ),[](std::shared_ptr<TH1> h1){return std::dynamic_pointer_cast<TH2D>(h1);}},
+                    pf_ID},
+                },
+                {sampleLabel,"Reso. Ratio q<0 / q>0", region.label}, "CheckMuonCov_IDtrk_vsEtaPhi2D_ChargeRatio_"+region.title,mpc, copt_err_2D_EtaPhi_CR
+            }
+        );
+
+
+
+
     }
 
     
     /// Loop over our eta bins and book plots versus pt 
 
-    for (auto & region : ResoRegions_eta){
+    // for (auto & region : ResoRegions_eta){
 
-        /// One selection per leg - needed because the ntuple format is a bit inconvenient... 
-        Selection <MuonMomentumCalibrationTreeExtended> sel_pos =  getAbsEtaWindow_Pos(region.etaMin,region.etaMax);  
-        Selection <MuonMomentumCalibrationTreeExtended> sel_neg =  getAbsEtaWindow_Neg(region.etaMin,region.etaMax);  
+    //     /// One selection per leg - needed because the ntuple format is a bit inconvenient... 
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_pos =  getAbsEtaWindow_Pos(region.etaMin,region.etaMax);  
+    //     Selection <MuonMomentumCalibrationTreeExtended> sel_neg =  getAbsEtaWindow_Neg(region.etaMin,region.etaMax);  
         
-        /// Book plots with the iterative RMS based pull width versus pt
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Pt, MCP, sel_pos,
-                                    fillMomPullRel_vsPt_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Pt, MCP, sel_neg,
-                                    fillMomPullRel_vsPt_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Pt, MCP, sel_pos,
-                                    fillMomPullRel_vsPt_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Pt, MCP, sel_neg,
-                                    fillMomPullRel_vsPt_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Pt, MCP, sel_pos,
-                                    fillMomPullRel_vsPt_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_pull_2D_Pt, MCP, sel_neg,
-                                    fillMomPullRel_vsPt_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_PullWidthVsPt"+region.title,mpc, copt_pullWidth_1D
-            }
-        );
-        /// Book plots with the iterative RMS based resolution versus pt
-        do1D.push_back(
-            PlotContent<TH1D>{
-                {
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Pt, MCP, sel_pos,
-                                    fillMomResidualRel_vsPt_ID_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Pt, MCP, sel_neg,
-                                    fillMomResidualRel_vsPt_ID_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ID},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Pt, MCP, sel_pos,
-                                    fillMomResidualRel_vsPt_ME_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Pt, MCP, sel_neg,
-                                    fillMomResidualRel_vsPt_ME_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_ME},
-                    Plot<TH1D>{
-                        GenericPostProcessing<TH1D,TH2D>(
-                            LinearCombination<TH2D>(  
-                                RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Pt, MCP, sel_pos,
-                                    fillMomResidualRel_vsPt_CB_1D_Pos
-                                }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
-                                    &href_residual_2D_Pt, MCP, sel_neg,
-                                    fillMomResidualRel_vsPt_CB_1D_Neg
-                                },1), 
-                            ResoUtils::getIterRMS), pf_CB},
-                },
-                {"Z#rightarrow #mu#mu", region.label}, "CheckMuonPt_ResoVsPt"+region.title,mpc, copt_reso_1D
-            }
-        );
-    }
+    //     /// Book plots with the iterative RMS based pull width versus pt
+    //     do1D.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Pt, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPt_ID_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Pt, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPt_ID_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ID},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Pt, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPt_ME_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Pt, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPt_ME_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ME},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Pt, MCP, sel_pos,
+    //                                 fillMomPullRel_vsPt_CB_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_pull_2D_Pt, MCP, sel_neg,
+    //                                 fillMomPullRel_vsPt_CB_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_PullWidthVsPt"+region.title,mpc, copt_pullWidth_1D
+    //         }
+    //     );
+    //     /// Book plots with the iterative RMS based resolution versus pt
+    //     do1D.push_back(
+    //         PlotContent<TH1D>{
+    //             {
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Pt, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPt_ID_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Pt, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPt_ID_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ID},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Pt, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPt_ME_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Pt, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPt_ME_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_ME},
+    //                 Plot<TH1D>{
+    //                     GenericPostProcessing<TH1D,TH2D>(
+    //                         LinearCombination<TH2D>(  
+    //                             RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Pt, MCP, sel_pos,
+    //                                 fillMomResidualRel_vsPt_CB_1D_Pos
+    //                             }, RunHistoFiller<TH2D, MuonMomentumCalibrationTreeExtended>{ 
+    //                                 &href_residual_2D_Pt, MCP, sel_neg,
+    //                                 fillMomResidualRel_vsPt_CB_1D_Neg
+    //                             },1), 
+    //                         ResoUtils::getIterRMS), pf_CB},
+    //             },
+    //             {sampleLabel, region.label}, "CheckMuonPt_"+samplePrefix+"_ResoVsPt"+region.title,mpc, copt_reso_1D
+    //         }
+    //     );
+    // }
 
 
     /// Now, fill the histograms and draw them! 
