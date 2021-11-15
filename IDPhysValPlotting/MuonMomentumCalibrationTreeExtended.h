@@ -16,28 +16,54 @@ class MuonMomentumCalibrationTreeExtended: public MuonMomentumCalibrationTree{
          return t.EventWeight() * t.PileupWeight() / 1942.; 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_CB_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
-         return std::sqrt(t.Pos_CB_TrackCovMatrix(14))*1.e3; 
+         return std::sqrt(t.Pos_CB_TrackCovMatrix(14)); 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_ME_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
-         return std::sqrt(t.Pos_ME_TrackCovMatrix(14))*1.e3; 
+         return std::sqrt(t.Pos_ME_TrackCovMatrix(14)); 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_MS_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
-         return std::sqrt(t.Pos_MS_TrackCovMatrix(14))*1.e3; 
+         return std::sqrt(t.Pos_MS_TrackCovMatrix(14)); 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_ID_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
-         return std::sqrt(t.Pos_ID_TrackCovMatrix(14))*1.e3; 
+         return std::sqrt(t.Pos_ID_TrackCovMatrix(14)); 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Neg_CB_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
-         return std::sqrt(t.Neg_CB_TrackCovMatrix(14))*1.e3; 
+         return std::sqrt(t.Neg_CB_TrackCovMatrix(14)); 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Neg_ME_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
-         return std::sqrt(t.Neg_ME_TrackCovMatrix(14))*1.e3; 
+         return std::sqrt(t.Neg_ME_TrackCovMatrix(14)); 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Neg_MS_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
-         return std::sqrt(t.Neg_MS_TrackCovMatrix(14))*1.e3; 
+         return std::sqrt(t.Neg_MS_TrackCovMatrix(14)); 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Neg_ID_TrackCov_qoverp{[](MuonMomentumCalibrationTree &t){
-         return std::sqrt(t.Neg_ID_TrackCovMatrix(14))*1.e3; 
+         return std::sqrt(t.Neg_ID_TrackCovMatrix(14)); 
+     }, this}; 
+
+
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_CB_QoverP{[](MuonMomentumCalibrationTree &t){
+         return t.Pos_CB_TrackPars(4); 
+     }, this}; 
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_ME_QoverP{[](MuonMomentumCalibrationTree &t){
+         return t.Pos_ME_TrackPars(4); 
+     }, this}; 
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_MS_QoverP{[](MuonMomentumCalibrationTree &t){
+         return t.Pos_MS_TrackPars(4); 
+     }, this}; 
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_ID_QoverP{[](MuonMomentumCalibrationTree &t){
+         return t.Pos_ID_TrackPars(4); 
+     }, this}; 
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Neg_CB_QoverP{[](MuonMomentumCalibrationTree &t){
+         return t.Neg_CB_TrackPars(4); 
+     }, this}; 
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Neg_ME_QoverP{[](MuonMomentumCalibrationTree &t){
+         return t.Neg_ME_TrackPars(4); 
+     }, this}; 
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Neg_MS_QoverP{[](MuonMomentumCalibrationTree &t){
+         return t.Neg_MS_TrackPars(4); 
+     }, this}; 
+     DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Neg_ID_QoverP{[](MuonMomentumCalibrationTree &t){
+         return t.Neg_ID_TrackPars(4); 
      }, this}; 
      DerivedVirtualBranch<float,MuonMomentumCalibrationTree> Pos_Truth_SinTheta{[](MuonMomentumCalibrationTree &t){
         return std::sin(2. * std::atan(std::exp(-t.Pos_TruthEta()))); 
