@@ -26,7 +26,10 @@ template <class HistType> std::vector <PlotContent<HistType> > HistoBooking::boo
 
         if (forFname.Contains("vs_pt")){
             // draw pt with a log-x
-            LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(true).Title("Hi! I am an X axis");
+            LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(true).Title("p_{T} [GeV]");
+            if (forFname.Contains("Resolution")){
+                LocalOpts.RatioAxis.modify().Max(1.4).Min(0.6); 
+            }
         }
 
         std::vector<Plot<HistType>> thePlots; 
@@ -40,11 +43,21 @@ template <class HistType> std::vector <PlotContent<HistType> > HistoBooking::boo
         }
         std::vector<std::string> myLabels{item}; 
         myLabels.insert(myLabels.end(), labels.begin(),labels.end()); 
-        myBooking.push_back(
-            PlotContent<HistType>{
-               thePlots, myLabels,outName,multiPage,LocalOpts
-            }
-        );
+        if (thePlots.size() < 4){
+            myBooking.push_back(
+                PlotContent<HistType>{
+                thePlots, myLabels,outName,multiPage,LocalOpts
+                }
+            );
+        }
+        else{
+            
+            myBooking.push_back(
+                PlotContent<HistType>{
+                thePlots, std::vector<RatioEntry>{RatioEntry(1,0), RatioEntry(3,2)}, myLabels,outName,multiPage,LocalOpts
+                }
+            );
+        }
     }
     return myBooking;  
 }

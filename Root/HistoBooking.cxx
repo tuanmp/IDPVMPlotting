@@ -38,8 +38,7 @@ std::vector <PlotContent<TH1D> > HistoBooking::bookEffs(
         }
         if (forFname.Contains("vs_pt")){
             // draw pt with a log-x
-            LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(true).Title("Hi! I am an X axis");
-            LocalOpts.YAxis.modify().Title("myYaxis");
+            LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(false).Title("p_{T} [GeV]");
         }
 
         std::vector<Plot<TH1D>> thePlots; 
@@ -53,11 +52,22 @@ std::vector <PlotContent<TH1D> > HistoBooking::bookEffs(
         }
         std::vector<std::string> myLabels{item}; 
         myLabels.insert(myLabels.end(), labels.begin(),labels.end()); 
-        myBooking.push_back(
-            PlotContent<TH1D>{
-               thePlots, myLabels,outName,multiPage,LocalOpts
-            }
-        );
+        
+        if (thePlots.size() < 4){
+            myBooking.push_back(
+                PlotContent<TH1D>{
+                thePlots, myLabels,outName,multiPage,LocalOpts
+                }
+            );
+        }
+        else{
+            
+            myBooking.push_back(
+                PlotContent<TH1D>{
+                thePlots, std::vector<RatioEntry>{RatioEntry(1,0), RatioEntry(3,2)}, myLabels,outName,multiPage,LocalOpts
+                }
+            );
+        }
     }
     return myBooking;  
 }
