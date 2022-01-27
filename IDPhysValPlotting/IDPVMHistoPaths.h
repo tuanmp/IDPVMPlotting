@@ -4,15 +4,38 @@
 #include <string> 
 #include <vector> 
 
+/// Namespace to provide a few useful histogram lookup paths for convenience
 namespace IDPVMHistoPaths{
-
+    /// Location of the IDPVM efficiency plots. 
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
     std::string path_Efficiency(bool TightPrimary=false); 
+
+    /// Location of the IDPVM track parameter plots. 
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
     std::string path_params(bool TightPrimary=false); 
-    std::string path_resolutions(bool TightPrimary=false); 
+
+    /// Location of the IDPVM resolution plots. 
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
+    std::string path_resolutions(bool TightPrimary=false);
+
+    /// Location of the IDPVM unlinked track plots. 
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots 
     std::string path_unlinked(bool TightPrimary=false); 
+
+    /// Location of the IDPVM fake track plots. 
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
     std::string path_fake(bool TightPrimary=false); 
+
+    /// Location of the IDPVM TRT-extension plots. 
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
     std::string path_TRTExtension(bool TightPrimary=false); 
+
+    /// Location of the IDPVM hit/hole plots for all selected tracks. 
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
     std::string path_hitsOnTrack_Selected(bool TightPrimary=false); 
+
+    /// Location of the IDPVM efficiency hit/hole plots for truth-matched tracks. 
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
     std::string path_hitsOnTrack_Matched(bool TightPrimary=false); 
 
     /// scan helper. Scans a folder and returns a list of all found 

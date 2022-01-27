@@ -4,9 +4,10 @@ Build on `NtupleAnalysisUtils` for most of the heavy lifting.
 
 # Getting set up: 
 
-This is a standard ATLAS CMake package, and can be compiled with the usual workflow. 
+This is a standard ATLAS CMake package, and can be compiled with the usual ATLAS workflow. 
 
-I recommend a recent Athena or AthAnalysis release (only dependency is g++ / ROOT, so it's not very picky). 
+I recommend a recent Athena or Analysis release (only dependency is g++ / ROOT, so it's not very picky). 
+The code was tested to work with gcc 8-11. Your mileage may vary on gcc6. 
 
 The project comes with a pre-made project CMakeLists file, in case you need one. See below for a setup example: 
 ```
@@ -28,13 +29,12 @@ The program intended for "general use" is  [util/StandardPhysValComparison.cxx](
 It will auto-discover most interesting plots in the IDPVM output and plot them all into a (large) multi page PDF as well as individual PDF files. Histo ranges etc are autodetected. 
 Ratios are also auto-computed. 
 
-The block to edit in day-to-day work is lines 32-36, where we set the files to compare: 
+The block to edit in day-to-day work is lines 36-42, where we set the files to compare: 
 ```
-   std::vector<PlotFormat> formats{ 
-        // Reference
-        PlotFormat().Color(colRef).MarkerStyle(kFullSquare).LegendOption("PL").LegendTitle("old geometry").ExtraDrawOpts("LP").LineWidth(2)  
+    std::vector<PlotFormat> formats{ 
+        PlotFormat().Color(colRef).MarkerStyle(kFullSquare).LegendOption("PL").LegendTitle("old geometry").ExtraDrawOpts("LP").LineWidth(2)
         .CustomString("FileName","/home/goblirsc/Code/Tracking/DQHoles/f1138/M_output.root"),  // here you can set the file to load!
-        // Only one test sample here
+        
         PlotFormat().Color(colTest1).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("conditions-alg geometry").ExtraDrawOpts("LP").LineWidth(2)
         .CustomString("FileName","/home/goblirsc/Code/Tracking/DQHoles/f1121/M_output.root"), // here you can set the file to load!
     }; 
@@ -42,7 +42,10 @@ The block to edit in day-to-day work is lines 32-36, where we set the files to c
 The vector can contain an arbitrary number of entries, so you are not limited to comparing just two setups at a time. 
 The first element is considered the "reference", and ratios are automatically prepared comparing each other setup to the reference. 
 
-When making changes, the shortcut `cmake --build $TestArea && StandardPhysValComparison` can be useful to rebuild and update the results 
+When making changes, the shorthand `cmake --build $TestArea && StandardPhysValComparison` can be useful to rebuild and update the results 
+
+Farther below, you can configure plot labels, canvas appearance & labeling, file names, etc. You can also select which items to include 
+in the set of drawn comparisons. 
 
 # Learning more 
 
