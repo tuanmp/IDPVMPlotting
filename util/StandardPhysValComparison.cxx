@@ -34,11 +34,11 @@ int main(){
     /// For the meaning of the various arguments: See NTAU tutorial @ https://gitlab.cern.ch/Atlas-Inner-Tracking/NtupleAnalysisUtils_tutorial 
     /// In particular, check out the SWAN notebooks! 
     std::vector<PlotFormat> formats{ 
-        PlotFormat().Color(colRef).MarkerStyle(kFullSquare).LegendOption("PL").LegendTitle("old geometry").ExtraDrawOpts("LP").LineWidth(2)
-        .CustomString("FileName","/home/goblirsc/Code/Tracking/DQHoles/f1138/M_output.root"),  // here you can set the file to load!
+        PlotFormat().Color(colRef).MarkerStyle(kFullSquare).LegendOption("PL").LegendTitle("Nominal detector").ExtraDrawOpts("LP").LineWidth(2)
+        .CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_nominal.IDPVM.root"),  // here you can set the file to load!
         
-        PlotFormat().Color(colTest1).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("conditions-alg geometry").ExtraDrawOpts("LP").LineWidth(2)
-        .CustomString("FileName","/home/goblirsc/Code/Tracking/DQHoles/f1121/M_output.root"), // here you can set the file to load!
+        PlotFormat().Color(colTest1).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("No B-layer").ExtraDrawOpts("LP").LineWidth(2)
+        .CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_noBL.IDPVM.root"), // here you can set the file to load!
     }; 
     
     /// Here, you can tune the appearance of the canvas. 
@@ -47,14 +47,15 @@ int main(){
     auto myOpts = CanvasOptions().YAxis(AxisConfig().TopPadding(0.8).BottomPadding(0.15)).RatioAxis(AxisConfig().Title("Ratio w.r.t Ref").Symmetric(true).SymmetrisationPoint(1.)).ColorPalette(kBlackBody); 
 
     /// Here you can choose the file name for the output multi page PDF file. 
-    /// This example will generate a "CheckTrkGeoAlg.pdf" in the default location ("$TestArea/../Plots/<date>/") 
-    auto multi = PlotUtils::startMultiPagePdfFile("CheckTrkGeoAlg"); 
+    /// This example will generate a "CheckBLayerGone.pdf" in the default location ("$TestArea/../Plots/<date>/") 
+    auto multi = PlotUtils::startMultiPagePdfFile("CheckBLayerGone"); 
 
     /// This is the set of labels to draw on the plot.
-    /// Use this to show what you are testing, which process this is, the pileup, etc 
-    std::vector<std::string> labels {"t#bar{t} events", "Hard-scatter charged particles"};
-
-
+    /// Use this to show what you are testing, which process this is, the pileup, etc.
+    /// They will be drawn on your canvas one atop the other.
+    /// No need to include the ATLAS label, this is handled automatically, as is the lumi/sqrt{s}. 
+    /// Both can be changed in the CanvasOptions if desired. 
+    std::vector<std::string> labels {"Single #mu"};
 
     ///////////////////////////////////////////////////////////
     /// Now, we decide which items to actually draw comparisons for. 
@@ -95,8 +96,8 @@ int main(){
 
     /// find the resolutions that are actually interesting - veto pull projections to limit file size
     auto listOfResos = IDPVMHistoPaths::scanPath<TH1F>(fileToCheck,IDPVMHistoPaths::path_resolutions()); 
-    std::vector<std::string> interestingResos{}; 
-    std::copy_if(listOfResos.begin(), listOfResos.end(), interestingResos.begin(), 
+    std::vector<std::string> interestingResos; 
+    std::copy_if(listOfResos.begin(), listOfResos.end(), std::back_inserter(interestingResos), 
         [](const std::string & histName){
             if (histName.find("resProjection") != std::string::npos) return false; 
             if (histName.find("pullProjection") != std::string::npos) return false;
