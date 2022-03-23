@@ -1,6 +1,7 @@
 
 #include "IDPhysValPlotting/HistoBooking.h"
 #include "IDPhysValPlotting/IDPVMHistoPaths.h"
+#include "IDPhysValPlotting/IDPVMPlotting.h"
 #include "TProfile2D.h"
 
 int main(){
@@ -38,7 +39,9 @@ int main(){
         .CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_nominal.IDPVM.root"),  // here you can set the file to load!
         
         PlotFormat().Color(colTest1).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("No B-layer").ExtraDrawOpts("LP").LineWidth(2)
-        .CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_noBL.IDPVM.root"), // here you can set the file to load!
+        .CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_nominal.IDPVM.root"), // here you can set the file to load!
+	  //PlotFormat().Color(colTest1).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("No B-layer").ExtraDrawOpts("LP").LineWidth(2)
+	  //.CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_noBL.IDPVM.root"), // here you can set the file to load!
     }; 
     
     /// Here, you can tune the appearance of the canvas. 
@@ -121,15 +124,15 @@ int main(){
     ////////////////////////////////////////////////////////// 
 
     // Writing this in a form where it is easy to comment undesired entries. 
-    DefaultPlotting::draw1D(
-                            efficiencies, 
-                            resos,
-                            params,
-                            hitsHoles_Selected,
-                            hitsHoles_Matched
-                            ); 
-    DefaultPlotting::draw2DPlots(
-                            hitsHoles_Selected2D
-                            );
+    IDPVMPlotting::draw1D(
+			  efficiencies, 
+			  resos,
+			  params,
+			  hitsHoles_Selected,
+			  hitsHoles_Matched
+			  ); 
+    IDPVMPlotting::draw2DPlots(
+			       hitsHoles_Selected2D
+			       );
     return 0; 
 }
