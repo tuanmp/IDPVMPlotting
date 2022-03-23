@@ -38,7 +38,9 @@ int main(){
         .CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_nominal.IDPVM.root"),  // here you can set the file to load!
         
         PlotFormat().Color(colTest1).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("No B-layer").ExtraDrawOpts("LP").LineWidth(2)
-        .CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_noBL.IDPVM.root"), // here you can set the file to load!
+        .CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_nominal.IDPVM.root"), // here you can set the file to load!
+	  //PlotFormat().Color(colTest1).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("No B-layer").ExtraDrawOpts("LP").LineWidth(2)
+	  //.CustomString("FileName","/eos/user/g/goblirsc/Tracking/PhysValPlottingExampleFiles/SglMu_master_noBL.IDPVM.root"), // here you can set the file to load!
     }; 
     
     /// Here, you can tune the appearance of the canvas. 
