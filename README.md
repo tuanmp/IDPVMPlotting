@@ -12,7 +12,7 @@ The code was tested to work with gcc 8-11. Your mileage may vary on gcc6.
 The project comes with a pre-made project CMakeLists file, in case you need one. See below for a setup example: 
 ```
 mkdir source; cd source/; 
-git clone --recursive https://:@gitlab.cern.ch:8443/goblirsc/idphysvalplotting.git IDPhysValPlotting
+git clone --recursive https://gitlab.cern.ch/Atlas-Inner-Tracking/IDPhysValPlotting.git IDPhysValPlotting
 cp IDPhysValPlotting/CMakeLists.forTopLevel.txt ./CMakeLists.txt
 cd ..
 mkdir build; cd build
