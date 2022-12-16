@@ -26,4 +26,10 @@ namespace IDPVMHistoPaths{
     std::string path_hitsOnTrack_Matched(bool TightPrimary){
         return std::string("SquirrelPlots/")+std::string(TightPrimary ? "TightPrimary/": "")+"Tracks/Matched/HitsOnTracks/"; 
     } 
+    std::string path_tracksInJets(bool TightPrimary){
+        return std::string("SquirrelPlots/")+std::string(TightPrimary ? "TightPrimary/": "")+"TracksInJets/"; 
+    } 
+    std::string path_tracksInBJets(bool TightPrimary){
+        return std::string("SquirrelPlots/")+std::string(TightPrimary ? "TightPrimary/": "")+"TracksInBJets/"; 
+    } 
 }
