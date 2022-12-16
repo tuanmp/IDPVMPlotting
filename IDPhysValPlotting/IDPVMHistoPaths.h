@@ -38,6 +38,14 @@ namespace IDPVMHistoPaths{
     /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
     std::string path_hitsOnTrack_Matched(bool TightPrimary=false); 
 
+    /// Location of the IDPVM for track in jet plots
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
+    std::string path_tracksInJets(bool TightPrimary=false); 
+
+    /// Location of the IDPVM for track in jet plots
+    /// @param TightPrimary: If enabled, return the location of the TightPrimary plots
+    std::string path_tracksInBJets(bool TightPrimary=false); 
+
     /// scan helper. Scans a folder and returns a list of all found 
     /// objects of the desired type. Use to draw the entire content 
     /// of a given folder. 

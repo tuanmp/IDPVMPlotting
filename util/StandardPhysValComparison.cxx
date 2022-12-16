@@ -81,14 +81,35 @@ int main(){
     /// objects, which each encapsulate a plot to be drawn. 
     /// This just defines a workload, nothing is actually run yet. 
 
+    /// remove the efficiency plot that causes a crash
+    auto listOfEffs = IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck,IDPVMHistoPaths::path_Efficiency()); 
+    std::vector<std::string> interestingEffs; 
+    std::copy_if(listOfEffs.begin(), listOfEffs.end(), std::back_inserter(interestingEffs), 
+        [](const std::string & histName){
+            std::cout<< "histName \t" << histName << std::endl;
+            if (histName.find("vs_pteta") != std::string::npos) return false;
+            return true; 
+        }
+    ); 
     /// Efficiencies
-    auto efficiencies = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck,IDPVMHistoPaths::path_Efficiency()),  formats, labels, "EffCheck_",multi,myOpts); 
+    auto efficiencies = HistoBooking::bookEffs(interestingEffs,  formats, labels, "EffCheck_",multi,myOpts); 
+
 
     /// Hits and holes - selected
     auto hitsHoles_Selected = HistoBooking::bookThem<TProfile>(IDPVMHistoPaths::scanPath<TProfile>(fileToCheck,IDPVMHistoPaths::path_hitsOnTrack_Selected()),  formats, labels, "HitHoleCheck_Selected_",multi,myOpts);
 
     /// Hits and holes - matched
     auto hitsHoles_Matched = HistoBooking::bookThem<TProfile>(IDPVMHistoPaths::scanPath<TProfile>(fileToCheck,IDPVMHistoPaths::path_hitsOnTrack_Matched()),  formats, labels, "HitHoleCheck_Matched_",multi,myOpts);
+
+    /// Tracks in Jets - Profiles 
+    auto tracksInJets = HistoBooking::bookThem<TProfile>(IDPVMHistoPaths::scanPath<TProfile>(fileToCheck,IDPVMHistoPaths::path_tracksInJets()),  formats, labels, "TracksInJets_",multi,myOpts);
+    /// Tracks in Jets - Efficiencies
+    auto tracksInJets_effs = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck,IDPVMHistoPaths::path_tracksInJets()),  formats, labels, "TracksInJets_",multi,myOpts);
+
+    /// Tracks in BJets - Profiles 
+    auto tracksInBJets = HistoBooking::bookThem<TProfile>(IDPVMHistoPaths::scanPath<TProfile>(fileToCheck,IDPVMHistoPaths::path_tracksInBJets()),  formats, labels, "TracksInBJets_",multi,myOpts);
+    /// Tracks in BJets - Efficiencies
+    auto tracksInBJets_effs = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck,IDPVMHistoPaths::path_tracksInBJets()),  formats, labels, "TracksInBJets_",multi,myOpts);
 
     /// Hits and holes - 2D
     auto hitsHoles_Selected2D = HistoBooking::bookThem<TProfile2D>(IDPVMHistoPaths::scanPath<TProfile2D>(fileToCheck,IDPVMHistoPaths::path_hitsOnTrack_Selected()),  formats, labels, "HitHoleCheck_Selected2D_",multi,myOpts);
@@ -130,6 +151,10 @@ int main(){
 			  params,
 			  hitsHoles_Selected,
 			  hitsHoles_Matched
+//        tracksInJets,
+//        tracksInJets_effs,
+//        tracksInBJets,
+//        tracksInBJets_effs
 			  ); 
     IDPVMPlotting::draw2DPlots(
 			       hitsHoles_Selected2D
