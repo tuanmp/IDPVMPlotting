@@ -19,7 +19,7 @@ mkdir build; cd build
 asetup Athena,master,latest 
 cmake ../source 
 make 
-source x*.setup.sh
+source x*/setup.sh
 ```
 
 # How to use? 
