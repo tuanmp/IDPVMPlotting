@@ -1,6 +1,6 @@
 #include "IDPhysValPlotting/HistoBooking.h"
 
-std::vector <PlotContent<TH1D> > HistoBooking::bookEffs( 
+std::vector <PlotContent<TEfficiency> > HistoBooking::bookEffs( 
     const std::vector<std::string> & itemsToDraw, 
     const std::vector<PlotFormat> & entries, 
     const std::vector<std::string> & labels, 
@@ -9,7 +9,7 @@ std::vector <PlotContent<TH1D> > HistoBooking::bookEffs(
     CanvasOptions opts){
 
     /// Prepare the output vector
-    std::vector<PlotContent<TH1D>> myBooking; 
+    std::vector<PlotContent<TEfficiency>> myBooking; 
     myBooking.reserve(itemsToDraw.size()); 
 
     /// now, loop over every histogram to include, and add each to our task list 
@@ -41,21 +41,20 @@ std::vector <PlotContent<TH1D> > HistoBooking::bookEffs(
             LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(false).Title("p_{T} [GeV]");
         }
 
-        std::vector<Plot<TH1D>> thePlots; 
+        std::vector<Plot<TEfficiency>> thePlots; 
         for (auto & theFormat : entries){
             std::string fname =""; 
             if (!theFormat.CustomString.get("FileName",fname)){
                 std::cerr << "Please provide a \"FileName\" extra string with your PlotFormat to ensure drawing. Skipping an entry."<<std::endl;
                 continue; 
             }
-            thePlots.push_back(Plot<TH1D>(ExtractEfficiency(LoadFromFile<TEfficiency>(fname,item)),theFormat)); 
+            thePlots.push_back(Plot<TEfficiency>(LoadFromFile<TEfficiency>(fname,item),theFormat)); 
         }
         std::vector<std::string> myLabels{item}; 
         myLabels.insert(myLabels.end(), labels.begin(),labels.end()); 
-        
         if (thePlots.size() < 4){
             myBooking.push_back(
-                PlotContent<TH1D>{
+                PlotContent<TEfficiency>{
                 thePlots, myLabels,outName,multiPage,LocalOpts
                 }
             );
@@ -63,7 +62,7 @@ std::vector <PlotContent<TH1D> > HistoBooking::bookEffs(
         else{
             
             myBooking.push_back(
-                PlotContent<TH1D>{
+                PlotContent<TEfficiency>{
                 thePlots, std::vector<RatioEntry>{RatioEntry(1,0), RatioEntry(3,2)}, myLabels,outName,multiPage,LocalOpts
                 }
             );

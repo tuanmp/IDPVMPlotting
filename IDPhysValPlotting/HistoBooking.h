@@ -31,8 +31,7 @@ namespace HistoBooking{
 
 
     /// As above, but will extract efficiencies from an input TEfficiency 
-    /// in a TH1D format 
-    std::vector <PlotContent<TH1D> > bookEffs( 
+    std::vector <PlotContent<TEfficiency> > bookEffs( 
         const std::vector<std::string> & itemsToDraw, 
         const std::vector<PlotFormat> & entries, 
         const std::vector<std::string> & labels={}, 
