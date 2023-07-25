@@ -90,7 +90,7 @@ int main(){
             if (histName.find("vs_pteta") != std::string::npos) return false;
             return true; 
         }
-    ); 
+    );  
     /// Efficiencies
     auto efficiencies = HistoBooking::bookEffs(interestingEffs,  formats, labels, "EffCheck_",multi,myOpts); 
 
