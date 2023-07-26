@@ -21,9 +21,17 @@ namespace HistoBooking{
         std::shared_ptr<MultiPagePdfHandle> multiPage=nullptr,
         CanvasOptions opts=CanvasOptions{}); 
 
+    std::vector <PlotContent<TProfile2D> > bookProfs( 
+        const std::vector<std::string> & itemsToDraw, 
+        const std::vector<PlotFormat> & entries, 
+        const std::vector<std::string> & labels={}, 
+        const std::string & outFileName_base="", 
+        std::shared_ptr<MultiPagePdfHandle> multiPage=nullptr,
+        CanvasOptions opts=CanvasOptions{}); 
+
+
     /// As above, but will extract efficiencies from an input TEfficiency 
-    /// in a TH1D format 
-    std::vector <PlotContent<TH1D> > bookEffs( 
+    std::vector <PlotContent<TEfficiency> > bookEffs( 
         const std::vector<std::string> & itemsToDraw, 
         const std::vector<PlotFormat> & entries, 
         const std::vector<std::string> & labels={}, 
