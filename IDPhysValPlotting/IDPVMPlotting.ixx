@@ -9,7 +9,7 @@ template <class H> void IDPVMPlotting::draw1DWithRatio(PlotContent<H> & pc){
     pc.populateAll();
     // now, we can get the filled content
     std::vector<Plot<H>> plots = pc.getPlots();
-    std::vector<Plot<TH1>> ratios = pc.getRatios();
+    std::vector<Plot<ratioType<H>>> ratios = pc.getRatios();
 
     //getting the chi2 and KS quality test results
     std::vector<float> chi2probs = pc.getQualityTests("chi2"); 	   
