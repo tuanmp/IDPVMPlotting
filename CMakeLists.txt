@@ -5,7 +5,7 @@ atlas_subdir( IDPhysValPlotting )
 
 # Declare external dependencies ... default here is to include ROOT
 find_package( ROOT COMPONENTS MathCore RIO Core Physics Tree Math Hist Vector )
-
+find_package( nlohmann_json )
 
 # Declare package as a library
 # Note the convention that library names get "Lib" suffix
@@ -34,6 +34,6 @@ foreach(_exeFile ${files})
     atlas_add_executable( ${_theExec}
     ${_exeFile}
     INCLUDE_DIRS ${ROOT_INCLUDE_DIRS}
-    LINK_LIBRARIES ${ROOT_LIBRARIES} IDPhysValPlottingLib)
+    LINK_LIBRARIES ${ROOT_LIBRARIES} IDPhysValPlottingLib nlohmann_json::nlohmann_json )
     endif()
 endforeach()
