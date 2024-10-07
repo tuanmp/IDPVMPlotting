@@ -3,7 +3,7 @@
         {
             "file": "PATH/TO/FIRST/FILE/M_output_6clusters.root",
             "MakerStyle": 3,
-            "LegendTitle": "FIRST LEGEND",
+            "LegendTitle": "REFERENCE LEGEND",
             "LineWidth": 2,
             "Color": 46
         },
