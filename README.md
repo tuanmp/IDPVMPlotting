@@ -29,25 +29,14 @@ The program intended for "general use" is  [util/StandardPhysValComparison.cxx](
 It will auto-discover most interesting plots in the IDPVM output and plot them all into a (large) multi page PDF as well as individual PDF files. Histo ranges etc are autodetected. 
 Ratios are also auto-computed. 
 
-The block to edit in day-to-day work is lines 36-42, where we set the files to compare: 
+The file to edit on a day-to-day basis is `source/IDPhysValPlotting/example.json`, make a clone anywhere you like. It must contain an `idpvm` key whose value is a list of IDPVM outputs to plot. The first element of the most is the reference, to which the ratio of subsequent elements are evaluated and plotted.
 ```
-    std::vector<PlotFormat> formats{ 
-        PlotFormat().Color(colRef).MarkerStyle(kFullSquare).LegendOption("PL").LegendTitle("old geometry").ExtraDrawOpts("LP").LineWidth(2)
-        .CustomString("FileName","/home/goblirsc/Code/Tracking/DQHoles/f1138/M_output.root"),  // here you can set the file to load!
-        
-        PlotFormat().Color(colTest1).MarkerStyle(kFullDotLarge).LegendOption("PL").LegendTitle("conditions-alg geometry").ExtraDrawOpts("LP").LineWidth(2)
-        .CustomString("FileName","/home/goblirsc/Code/Tracking/DQHoles/f1121/M_output.root"), // here you can set the file to load!
-    }; 
+    {
+        "file": "PATH/TO/FIRST/FILE/M_output_6clusters.root",
+        "MakerStyle": 3,
+        "LegendTitle": "REFERENCE LEGEND",
+        "LineWidth": 2,
+        "Color": 46
+    }
 ```
-The vector can contain an arbitrary number of entries, so you are not limited to comparing just two setups at a time. 
-The first element is considered the "reference", and ratios are automatically prepared comparing each other setup to the reference. 
-
-When making changes, the shorthand `cmake --build $TestArea && StandardPhysValComparison` can be useful to rebuild and update the results 
-
-Farther below, you can configure plot labels, canvas appearance & labeling, file names, etc. You can also select which items to include 
-in the set of drawn comparisons. 
-
-# Learning more 
-
-To learn more about how you can change the appearance of the plots, etc, please refer to the `NtupleAnalysisUtils` documentation.
-There is an [interactive tutorial](https://gitlab.cern.ch/goblirsc/NtupleAnalysisUtils_tutorial) - im particular try the notebook on SWAN! 
+Each element must contain all keys in this example element. The color number currently follows the numbering scheme found in [this link](https://root.cern.ch/doc/master/classTColor.html) for simplicity. Similarly, the marker style follows [this scheme](https://root.cern.ch/doc/master/classTAttMarker.html). The `idpvm` list can contain any number of entries, as long as they follow the same format. The user is free to change the style as desired, without recompiling the code.

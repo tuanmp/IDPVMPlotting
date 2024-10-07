@@ -25,22 +25,10 @@ int main(int argc, char *argv[])
     TColor::InitializeColors();
 
     /// read filenames from command line
-    // const std::string f1 = argv[1];
-    // const std::string f2 = argv[2];
-    // const std::string f3 = argv[3];
-    // const std::string f4 = argv[4];
     const std::string f = argv[1];
 
     /// A 3-color scheme that we used for the CPU PUB note.
     /// Feel free to use this (or any other colours you like!)
-    // Int_t colRef = TColor::GetFreeColorIndex();
-    // TColor *c1 = new TColor(colRef, 0.42, 0.7, 0.32);
-    // Int_t colTest1 = TColor::GetFreeColorIndex();
-    // TColor *c2 = new TColor(colTest1, 0.12, 0.47, 0.71);
-    // Int_t colTest2 = TColor::GetFreeColorIndex();
-    // TColor *c3 = new TColor(colTest2, 0.65, 0.22, 0.83);
-    // Int_t colTest3 = TColor::GetFreeColorIndex();
-    // TColor *c4 = new TColor(colTest3, .863, 0.078, 0.235);
 
     std::ifstream configFile(f);
     if (!configFile.is_open())
@@ -51,6 +39,7 @@ int main(int argc, char *argv[])
 
     nlohmann::json config;
     configFile >> config;
+    std::string outputDir = config.value("OutputDir", "");
 
     std::vector<PlotFormat> formats;
     for (const auto &item : config["idpvm"])
@@ -82,7 +71,7 @@ int main(int argc, char *argv[])
     /// Here, you can tune the appearance of the canvas.
     /// For example, this allows you to override axis ranges (or change how they are detected), manually enforce axis labels,
     /// steer the appearance of legends or palettes, the ATLAS label, etc.
-    auto myOpts = CanvasOptions().YAxis(AxisConfig().TopPadding(0.8).BottomPadding(0.15).Min(0)).RatioAxis(AxisConfig().Title("Ratio w.r.t Ref").Symmetric(true).SymmetrisationPoint(1.)).ColorPalette(kBlackBody);
+    auto myOpts = CanvasOptions().YAxis(AxisConfig().TopPadding(0.8).BottomPadding(0.15).Min(0)).RatioAxis(AxisConfig().Title("Ratio w.r.t Ref").Symmetric(true).SymmetrisationPoint(1.)).ColorPalette(kBlackBody).OutputDir(outputDir);
 
     /// Here you can choose the file name for the output multi page PDF file.
     /// This example will generate a "CheckBLayerGone.pdf" in the default location ("$TestArea/../Plots/<date>/")
@@ -167,7 +156,7 @@ int main(int argc, char *argv[])
     auto tracksInBJets_effs_Loose = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck, IDPVMHistoPaths::path_tracksInBJets_Loose()), formats, labels, "TracksInBJets_", multi, myOpts);
 
     /// Hits and holes - 2D
-    auto hitsHoles_Selected2D = HistoBooking::bookThem<TProfile2D>(IDPVMHistoPaths::scanPath<TProfile2D>(fileToCheck, IDPVMHistoPaths::path_hitsOnTrack_Selected()), formats, labels, "HitHoleCheck_Selected2D_", multi, myOpts);
+    // auto hitsHoles_Selected2D = HistoBooking::bookThem<TProfile2D>(IDPVMHistoPaths::scanPath<TProfile2D>(fileToCheck, IDPVMHistoPaths::path_hitsOnTrack_Selected()), formats, labels, "HitHoleCheck_Selected2D_", multi, myOpts);
 
     /// 1D track parameters
     auto params = HistoBooking::bookThem<TH1F>(IDPVMHistoPaths::scanPath<TH1F>(fileToCheck, IDPVMHistoPaths::path_params()), formats, labels, "ParamCheck_", multi, myOpts);
@@ -178,8 +167,8 @@ int main(int argc, char *argv[])
     auto unlinkedRate_Loose = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck, IDPVMHistoPaths::path_unlinked_Loose()), formats, labels, "UnlinkedFakeRate_", multi, myOpts);
 
     /// fake rate
-    auto fake = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck, IDPVMHistoPaths::path_fake()), formats, {}, "FakeRate_", multi, myOpts);
-    auto fake_Loose = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck, IDPVMHistoPaths::path_fake_Loose()), formats, {}, "FakeRate_", multi, myOpts);
+    auto fake = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck, IDPVMHistoPaths::path_fake()), formats, {}, "", multi, myOpts);
+    auto fake_Loose = HistoBooking::bookEffs(IDPVMHistoPaths::scanPath<TEfficiency>(fileToCheck, IDPVMHistoPaths::path_fake_Loose()), formats, {}, "", multi, myOpts);
 
     /// find the resolutions that are actually interesting - veto pull projections to limit file size
     auto listOfResos = IDPVMHistoPaths::scanPath<TH1F>(fileToCheck, IDPVMHistoPaths::path_resolutions());

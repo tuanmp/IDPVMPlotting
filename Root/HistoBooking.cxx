@@ -1,4 +1,5 @@
 #include "IDPhysValPlotting/HistoBooking.h"
+#include <boost/algorithm/string.hpp>
 
 std::vector<PlotContent<TEfficiency>> HistoBooking::bookEffs(
     const std::vector<std::string> &itemsToDraw,
@@ -21,6 +22,9 @@ std::vector<PlotContent<TEfficiency>> HistoBooking::bookEffs(
         forFname = forFname.ReplaceAll("/", "_");
         forFname = forFname.ReplaceAll(" ", "_");
         forFname = forFname.ReplaceAll(":", "_");
+        forFname = forFname.ReplaceAll("SquirrelPlots_", "");
+        forFname = forFname.ReplaceAll("Efficiency_", "");
+        // forFname = forFname.ReplaceAll("Tracks_", "");
         std::string outName = outFileName_base + std::string(forFname);
 
         bool isFake = forFname.Contains("fake");
@@ -42,7 +46,7 @@ std::vector<PlotContent<TEfficiency>> HistoBooking::bookEffs(
         if (forFname.Contains("vs_pt"))
         {
             // draw pt with a log-x
-            LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(false).Title("p_{T} [GeV]");
+            LocalOpts.XAxis.modify().ExtraTitleOffset(-.1f).Log(false).Title("p_{T} [GeV]");
         }
 
         std::vector<Plot<TEfficiency>> thePlots;
@@ -56,21 +60,27 @@ std::vector<PlotContent<TEfficiency>> HistoBooking::bookEffs(
             }
             thePlots.push_back(Plot<TEfficiency>(LoadFromFile<TEfficiency>(fname, item), theFormat));
         }
-        std::vector<std::string> myLabels{item};
-        myLabels.insert(myLabels.end(), labels.begin(), labels.end());
-        if (thePlots.size() < 40)
-        {
-            myBooking.push_back(
-                PlotContent<TEfficiency>{
-                    thePlots, myLabels, outName, multiPage, LocalOpts});
-        }
-        else
-        {
+        std::string plotName = item;
+        std::string to_replace = "SquirrelPlots/";
+        size_t pos = plotName.find(to_replace);
+        if (pos != std::string ::npos)
+            plotName.replace(pos, to_replace.length(), "");
 
-            myBooking.push_back(
-                PlotContent<TEfficiency>{
-                    thePlots, std::vector<RatioEntry>{RatioEntry(1, 0), RatioEntry(3, 2)}, myLabels, outName, multiPage, LocalOpts});
-        }
+        std::vector<std::string> parts;
+        boost::split(parts, plotName, boost::is_any_of("/"));
+        std::string selection("No selection");
+        if (parts[0] == "Loose")
+            selection = "Loose";
+        else if (parts[0] == "TightPrimary")
+            selection = "TightPrimary";
+        selection = "Working point: " + selection;
+
+        std::vector<std::string> myLabels{selection};
+
+        myLabels.insert(myLabels.end(), labels.begin(), labels.end());
+        myBooking.push_back(
+            PlotContent<TEfficiency>{
+                thePlots, myLabels, outName, multiPage, LocalOpts});
     }
     return myBooking;
 }
@@ -102,6 +112,8 @@ std::vector<PlotContent<TProfile2D>> HistoBooking::bookProfs(
         forFname = forFname.ReplaceAll("/", "_");
         forFname = forFname.ReplaceAll(" ", "_");
         forFname = forFname.ReplaceAll(":", "_");
+        forFname = forFname.ReplaceAll("SquirrelPlots_", "");
+        // forFname = forFname.ReplaceAll("Tracks_", "");
         std::string outName = outFileName_base + std::string(forFname);
 
         // Local copy of the canvas options - used to fine-tune behaviour
@@ -110,7 +122,7 @@ std::vector<PlotContent<TProfile2D>> HistoBooking::bookProfs(
         if (forFname.Contains("vs_pt"))
         {
             // draw pt with a log-x
-            LocalOpts.XAxis.modify().ExtraTitleOffset(0.7f).Log(true).Title("p_{T} [GeV]");
+            LocalOpts.XAxis.modify().ExtraTitleOffset(-0.1f).Log(true).Title("p_{T} [GeV]");
             if (forFname.Contains("Resolution"))
             {
                 LocalOpts.RatioAxis.modify().Max(1.4).Min(0.6);
@@ -132,21 +144,11 @@ std::vector<PlotContent<TProfile2D>> HistoBooking::bookProfs(
             fmt.ExtraDrawOpts("COLZ");
             thePlots.push_back(Plot<TProfile2D>(rebinOp(LoadFromFile<TProfile2D>(fname, item)), fmt));
         }
-        std::vector<std::string> myLabels{item};
+        std::vector<std::string> myLabels{};
         myLabels.insert(myLabels.end(), labels.begin(), labels.end());
-        if (thePlots.size() < 40)
-        {
-            myBooking.push_back(
-                PlotContent<TProfile2D>{
-                    thePlots, myLabels, outName, multiPage, LocalOpts});
-        }
-        else
-        {
-
-            myBooking.push_back(
-                PlotContent<TProfile2D>{
-                    thePlots, std::vector<RatioEntry>{RatioEntry(1, 0), RatioEntry(3, 2)}, myLabels, outName, multiPage, LocalOpts});
-        }
+        myBooking.push_back(
+            PlotContent<TProfile2D>{
+                thePlots, myLabels, outName, multiPage, LocalOpts});
     }
     return myBooking;
 }

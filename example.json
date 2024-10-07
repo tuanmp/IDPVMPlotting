@@ -1,0 +1,26 @@
+{
+    "idpvm": [
+        {
+            "file": "PATH/TO/FIRST/FILE/M_output_6clusters.root",
+            "MakerStyle": 3,
+            "LegendTitle": "FIRST LEGEND",
+            "LineWidth": 2,
+            "Color": 46
+        },
+        {
+            "file": "PATH/TO/SECOND/FILE/M_output_6clusters.root",
+            "MakerStyle": 25,
+            "LegendTitle": "SECOND LEGEND",
+            "LineWidth": 2,
+            "Color": 8
+        },
+        {
+            "file": "PATH/TO/THIRD/FILE/M_output_6clusters.root",
+            "MakerStyle": 8,
+            "LegendTitle": "THIRD LEGEND",
+            "LineWidth": 2,
+            "Color": 9
+        }
+    ],
+    "OutputDir" : "PATH/TO/OUTPUT"
+}

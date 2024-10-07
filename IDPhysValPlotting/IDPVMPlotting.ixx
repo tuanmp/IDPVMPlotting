@@ -44,13 +44,13 @@ void IDPVMPlotting::draw1DWithRatio(PlotContent<H> &pc)
     else
         latexformat.Color(kGreen + 2);
     std::string chi2text = "Chi2 p-value = " + std::to_string(chi2probs[0]);
-    PlotUtils::drawTLatex(0.15, 0.65, chi2text, latexformat);
+    // PlotUtils::drawTLatex(0.15, 0.65, chi2text, latexformat);
     if (ksprobs[0] < 0.1)
         latexformat.Color(kRed + 1);
     else
         latexformat.Color(kGreen + 2);
     std::string kstext = "KS p-value = " + std::to_string(ksprobs[0]);
-    PlotUtils::drawTLatex(0.15, 0.57, kstext, latexformat);
+    // PlotUtils::drawTLatex(0.15, 0.57, kstext, latexformat);
 
     // now draw the plots
     for (auto &plot : plots)
