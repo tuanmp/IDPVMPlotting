@@ -12,7 +12,7 @@ The code was tested to work with gcc 8-11. Your mileage may vary on gcc6.
 The project comes with a pre-made project CMakeLists file, in case you need one. See below for a setup example: 
 ```
 mkdir source; cd source/; 
-git clone --recursive https://gitlab.cern.ch/Atlas-Inner-Tracking/IDPhysValPlotting.git IDPhysValPlotting
+git clone --recursive https://github.com/tuanmp/IDPVMPlotting IDPhysValPlotting
 cp IDPhysValPlotting/CMakeLists.forTopLevel.txt ./CMakeLists.txt
 cd ..
 mkdir build; cd build
@@ -24,7 +24,7 @@ source x*/setup.sh
 
 # How to use? 
 
-The program intended for "general use" is  [util/StandardPhysValComparison.cxx](https://gitlab.cern.ch/goblirsc/idphysvalplotting/-/blob/master/util/StandardPhysValComparison.cxx)
+The program intended for "general use" is [util/StandardPhysValComparison.cxx](./util/StandardPhysValComparison.cxx)
 
 It will auto-discover most interesting plots in the IDPVM output and plot them all into a (large) multi page PDF as well as individual PDF files. Histo ranges etc are autodetected. 
 Ratios are also auto-computed. 
