@@ -41,7 +41,7 @@ The file to edit on a day-to-day basis is `source/IDPhysValPlotting/example.json
 ```
 Each element must contain all keys in this example element. The color number currently follows the numbering scheme found in [this link](https://root.cern.ch/doc/master/classTColor.html) for simplicity. Similarly, the marker style follows [this scheme](https://root.cern.ch/doc/master/classTAttMarker.html). The `idpvm` list can contain any number of entries, as long as they follow the same format. The user is free to change the style as desired, without recompiling the code.
 
-The default output directory of the plots will be `/srv/Plots/#TODAY`. The user may change this behaviour by 
+The default output directory of the plots will be `/srv/../Plots/#TODAY`. The user may change this behaviour by 
 ```
 export TestArea=/NEW/DEFAULT/PLOTDIR/
 ```
@@ -49,9 +49,7 @@ or changing the following field in the json file
 ```
 "OutputDir" : "PATH/TO/OUTPUT"
 ```
-whose absence will default to `$TestArea`
-
-When you are ready, run 
+whose absence will default to `$TestArea`. The user may add any labels in the field `labels`. Some extra formatting options are available and self-explanatory. When you are ready, run 
 ```
 StandardPhysValComparison #PATH_TO_JSON_FILE
 ```

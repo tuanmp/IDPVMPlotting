@@ -22,5 +22,9 @@
             "Color": 9
         }
     ],
-    "OutputDir" : "PATH/TO/OUTPUT"
+    "OutputDir" : "PATH/TO/OUTPUT",
+    "labels": [],
+    "lumiTag": "pp #rightarrow t#bar{t}, #LT#mu#GT = 200",
+    "sqrtTag": "13 TeV",
+    "statusTag": "Internal"
 }
