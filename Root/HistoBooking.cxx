@@ -5,7 +5,6 @@ std::vector<PlotContent<TEfficiency>> HistoBooking::bookEffs(
     const std::vector<std::string> &itemsToDraw,
     const std::vector<PlotFormat> &entries,
     const std::vector<std::string> &labels,
-    const std::string &outFileName_base,
     std::shared_ptr<MultiPagePdfHandle> multiPage,
     CanvasOptions opts)
 {
@@ -19,13 +18,8 @@ std::vector<PlotContent<TEfficiency>> HistoBooking::bookEffs(
     {
         /// First, we identify the output file name, based on the name of the plot
         TString forFname = item;
-        forFname = forFname.ReplaceAll("/", "_");
-        forFname = forFname.ReplaceAll(" ", "_");
-        forFname = forFname.ReplaceAll(":", "_");
-        forFname = forFname.ReplaceAll("SquirrelPlots_", "");
-        forFname = forFname.ReplaceAll("Efficiency_", "");
-        // forFname = forFname.ReplaceAll("Tracks_", "");
-        std::string outName = outFileName_base + std::string(forFname);
+        forFname = forFname.ReplaceAll("SquirrelPlots/", "");
+        std::string outName = std::string(forFname);
 
         bool isFake = forFname.Contains("fake");
         bool isEff = forFname.Contains("efficiency");
@@ -40,7 +34,7 @@ std::vector<PlotContent<TEfficiency>> HistoBooking::bookEffs(
         else if (isEff)
         {
             /// Use an epsilon min to avoid catching empty bins in the ratio determination
-            LocalOpts.YAxis.modify().TopPadding(0.8).BottomPadding(0.3).Min(1e-8).Max(1).Fixed(false).Title("Efficiency");
+            LocalOpts.YAxis.modify().TopPadding(0.8).BottomPadding(0.3).Min(1e-8).Max(1).Fixed(false).Title("Track Reconstruction Efficiency");
             LocalOpts.RatioAxis.modify().Min(.1).Max(3).SymmetrisationPoint(1.).Symmetric(true);
         }
         if (forFname.Contains("vs_pt"))
@@ -60,22 +54,9 @@ std::vector<PlotContent<TEfficiency>> HistoBooking::bookEffs(
             }
             thePlots.push_back(Plot<TEfficiency>(LoadFromFile<TEfficiency>(fname, item), theFormat));
         }
-        std::string plotName = item;
-        std::string to_replace = "SquirrelPlots/";
-        size_t pos = plotName.find(to_replace);
-        if (pos != std::string ::npos)
-            plotName.replace(pos, to_replace.length(), "");
 
-        std::vector<std::string> parts;
-        boost::split(parts, plotName, boost::is_any_of("/"));
-        std::string selection("No selection");
-        if (parts[0] == "Loose")
-            selection = "Loose";
-        else if (parts[0] == "TightPrimary")
-            selection = "TightPrimary";
-        selection = "Working point: " + selection;
-
-        std::vector<std::string> myLabels{selection};
+        // if there is any customized label to be added, here is where
+        std::vector<std::string> myLabels;
 
         myLabels.insert(myLabels.end(), labels.begin(), labels.end());
         myBooking.push_back(
@@ -94,7 +75,7 @@ std::vector<PlotContent<TProfile2D>> HistoBooking::bookProfs(
     const std::vector<std::string> &itemsToDraw,
     const std::vector<PlotFormat> &entries,
     const std::vector<std::string> &labels,
-    const std::string &outFileName_base,
+
     std::shared_ptr<MultiPagePdfHandle> multiPage,
     CanvasOptions opts)
 {
@@ -109,12 +90,8 @@ std::vector<PlotContent<TProfile2D>> HistoBooking::bookProfs(
 
         /// First, we identify the output file name, based on the name of the plot
         TString forFname = item;
-        forFname = forFname.ReplaceAll("/", "_");
-        forFname = forFname.ReplaceAll(" ", "_");
-        forFname = forFname.ReplaceAll(":", "_");
-        forFname = forFname.ReplaceAll("SquirrelPlots_", "");
-        // forFname = forFname.ReplaceAll("Tracks_", "");
-        std::string outName = outFileName_base + std::string(forFname);
+        forFname = forFname.ReplaceAll("SquirrelPlots/", "");
+        std::string outName = std::string(forFname);
 
         // Local copy of the canvas options - used to fine-tune behaviour
         auto LocalOpts = opts;

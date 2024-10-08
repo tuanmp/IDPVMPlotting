@@ -6,42 +6,42 @@
 
 #include "NtupleAnalysisUtils/NTAUTopLevelIncludes.h"
 
-
-namespace HistoBooking{ 
+namespace HistoBooking
+{
     /// book a vector of plots in one go.
-    /// For each PlotFormat, we will look for a custom string called 
-    /// "FileName" to determine where to read from. 
+    /// For each PlotFormat, we will look for a custom string called
+    /// "FileName" to determine where to read from.
     ///
     /// Behaviour is tuned to give a good result in IDPVM
-    template <class HistType> std::vector <PlotContent<HistType> > bookThem( 
-        const std::vector<std::string> & itemsToDraw, 
-        const std::vector<PlotFormat> & entries, 
-        const std::vector<std::string> & labels={}, 
-        const std::string & outFileName_base="", 
-        std::shared_ptr<MultiPagePdfHandle> multiPage=nullptr,
-        CanvasOptions opts=CanvasOptions{}); 
+    template <class HistType>
+    std::vector<PlotContent<HistType>> bookThem(
+        const std::vector<std::string> &itemsToDraw,
+        const std::vector<PlotFormat> &entries,
+        const std::vector<std::string> &labels = {},
 
-    std::vector <PlotContent<TProfile2D> > bookProfs( 
-        const std::vector<std::string> & itemsToDraw, 
-        const std::vector<PlotFormat> & entries, 
-        const std::vector<std::string> & labels={}, 
-        const std::string & outFileName_base="", 
-        std::shared_ptr<MultiPagePdfHandle> multiPage=nullptr,
-        CanvasOptions opts=CanvasOptions{}); 
+        std::shared_ptr<MultiPagePdfHandle> multiPage = nullptr,
+        CanvasOptions opts = CanvasOptions{});
 
+    std::vector<PlotContent<TProfile2D>> bookProfs(
+        const std::vector<std::string> &itemsToDraw,
+        const std::vector<PlotFormat> &entries,
+        const std::vector<std::string> &labels = {},
 
-    /// As above, but will extract efficiencies from an input TEfficiency 
-    std::vector <PlotContent<TEfficiency> > bookEffs( 
-        const std::vector<std::string> & itemsToDraw, 
-        const std::vector<PlotFormat> & entries, 
-        const std::vector<std::string> & labels={}, 
-        const std::string & outFileName_base="", 
-        std::shared_ptr<MultiPagePdfHandle> multiPage=nullptr,
-        CanvasOptions opts=CanvasOptions{}); 
+        std::shared_ptr<MultiPagePdfHandle> multiPage = nullptr,
+        CanvasOptions opts = CanvasOptions{});
+
+    /// As above, but will extract efficiencies from an input TEfficiency
+    std::vector<PlotContent<TEfficiency>> bookEffs(
+        const std::vector<std::string> &itemsToDraw,
+        const std::vector<PlotFormat> &entries,
+        const std::vector<std::string> &labels = {},
+
+        std::shared_ptr<MultiPagePdfHandle> multiPage = nullptr,
+        CanvasOptions opts = CanvasOptions{});
 
 }
 
 /// template method implementation
 #include "HistoBooking.ixx"
 
-#endif //IDPHYSVALPLOTTING__HISTOBOOKING__H
+#endif // IDPHYSVALPLOTTING__HISTOBOOKING__H

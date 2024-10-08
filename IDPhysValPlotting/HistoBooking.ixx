@@ -4,7 +4,6 @@ std::vector<PlotContent<HistType>> HistoBooking::bookThem(
     const std::vector<std::string> &itemsToDraw,
     const std::vector<PlotFormat> &entries,
     const std::vector<std::string> &labels,
-    const std::string &outFileName_base,
     std::shared_ptr<MultiPagePdfHandle> multiPage,
     CanvasOptions opts)
 {
@@ -19,13 +18,9 @@ std::vector<PlotContent<HistType>> HistoBooking::bookThem(
 
         /// First, we identify the output file name, based on the name of the plot
         TString forFname = item;
-        forFname = forFname.ReplaceAll("/", "_");
-        forFname = forFname.ReplaceAll(" ", "_");
-        forFname = forFname.ReplaceAll(":", "_");
-        forFname = forFname.ReplaceAll("SquirrelPlots_", "");
-        // forFname = forFname.ReplaceAll("Tracks_", "");
+        forFname = forFname.ReplaceAll("SquirrelPlots/", "");
 
-        std::string outName = outFileName_base + std::string(forFname);
+        std::string outName = std::string(forFname);
 
         // Local copy of the canvas options - used to fine-tune behaviour
         auto LocalOpts = opts;
@@ -51,7 +46,7 @@ std::vector<PlotContent<HistType>> HistoBooking::bookThem(
             }
             thePlots.push_back(Plot<HistType>(LoadFromFile<HistType>(fname, item), theFormat));
         }
-        std::vector<std::string> myLabels{item};
+        std::vector<std::string> myLabels;
         myLabels.insert(myLabels.end(), labels.begin(), labels.end());
         myBooking.push_back(
             PlotContent<HistType>{
